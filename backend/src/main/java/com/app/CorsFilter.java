@@ -5,7 +5,7 @@ import jakarta.servlet.http.*;
 import jakarta.servlet.annotation.*;
 import java.io.*;
 
-
+//To allow all requests (From React frontend to Java backend)
 @WebFilter("/*")
 public class CorsFilter implements Filter {
     @Override

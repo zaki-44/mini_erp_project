@@ -14,9 +14,9 @@ public class Servlet extends HttpServlet {
         if (message == null || message.isEmpty()) {
             message = "Hello, World!";
         }
+        System.out.println("Received message: " + message);
         resp.setContentType("application/json");
         PrintWriter out = resp.getWriter();
         out.println("{\"message\": \"" +"From server :" +message + "\"}");
-        out.flush();
     }
 }
