@@ -27,7 +27,6 @@ public class Servlet extends HttpServlet {
         Gson gson = new Gson();
         BufferedReader reader = req.getReader();
         Map<String, String> body = gson.fromJson(reader, Map.class);
-
         String message = body.get("message");
         System.out.println("Received message: " + message);
         if (message == null || message.isEmpty()) {
@@ -35,6 +34,6 @@ public class Servlet extends HttpServlet {
         }
         resp.setContentType("application/json");
         PrintWriter out = resp.getWriter();
-        out.println("{\"message\": \"" +"From server :" +message + "\"}");
+        out.println("{\"message\": \"" +"From server :" +message.toUpperCase() + "\"}");
     }
 }
