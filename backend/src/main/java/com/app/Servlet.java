@@ -10,10 +10,13 @@ import java.io.*;
 public class Servlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        String message = req.getParameter("message");
+        if (message == null || message.isEmpty()) {
+            message = "Hello, World!";
+        }
         resp.setContentType("application/json");
-        resp.setCharacterEncoding("UTF-8");
         PrintWriter out = resp.getWriter();
-        out.println("{\"message\": \"Hello, World!\"}");
+        out.println("{\"message\": \"" +"From server :" +message + "\"}");
         out.flush();
     }
 }
