@@ -8,6 +8,7 @@
 backend/target/
 .vscode
 .mvn
+/backend/.env
 # Eclipse / IntelliJ / VSCode project files
 *.iml
 *.ipr

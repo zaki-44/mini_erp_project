@@ -1,4 +1,4 @@
-package com.app;
+package com.app.filter;
 
 import jakarta.servlet.*;
 import jakarta.servlet.http.*;
@@ -12,8 +12,8 @@ public class CorsFilter implements Filter {
     public void doFilter(ServletRequest req, ServletResponse res, FilterChain chain)
         throws IOException, ServletException {
         HttpServletResponse response = (HttpServletResponse) res;
-        response.setHeader("Access-Control-Allow-Origin", "*");
-        response.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
+        response.setHeader("Access-Control-Allow-Origin", "http://localhost:5173");
+        response.setHeader("Access-Control-Allow-Methods", "*"); // allow all methods
         response.setHeader("Access-Control-Allow-Headers", "Content-Type");
         chain.doFilter(req, res);
     }
