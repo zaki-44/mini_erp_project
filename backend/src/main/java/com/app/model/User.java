@@ -51,4 +51,8 @@ public class User {
 
     public String getRole() { return role.name(); }
     public void setRole(String role) { this.role = Role.valueOf(role); }
+    public void print(){
+        System.out.println("User [id=" + id + ", email=" + email + ", username=" + username + ", passwordHash=" + passwordHash
+        + ", firstName=" + firstName + ", lastName=" + lastName + ", phoneNumber=" + phoneNumber + ", role=" + role + "]");
+    }
 }

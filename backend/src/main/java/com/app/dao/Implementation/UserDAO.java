@@ -42,6 +42,10 @@ public class UserDAO implements DAO<User>{
                 }
             }
         }
+        catch(SQLException e){
+            System.out.println("Error inserting user: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
 
     @Override
@@ -106,5 +110,5 @@ public class UserDAO implements DAO<User>{
     }
 
 
-    
+
 }

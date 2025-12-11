@@ -47,4 +47,9 @@ public class Notification {
 
     public Timestamp getDateNotif() { return dateNotif; }
     public void setDateNotif(Timestamp dateNotif) { this.dateNotif = dateNotif; }
+    public void print(){
+        System.out.println("Notification [idNotification=" + idNotification + ", idPackage=" + idPackage +
+        ", idUserTarget=" + idUserTarget + ", message=" + message + ", type=" + type +
+        ", isRead=" + isRead + ", dateNotif=" + dateNotif + "]");
+    }
 }

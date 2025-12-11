@@ -10,7 +10,7 @@ public class Deliverer extends User {
 
     public Deliverer(int id, String email, String username, String passwordHash,
                      String firstName, String lastName, String phoneNumber, String role,
-                     String vehicleType, String licensePlate, boolean available) {
+                     String vehicleType, boolean available) {
         super(id, email, username, passwordHash, firstName, lastName, phoneNumber, role);
         this.vehicleType = VehicleType.valueOf(vehicleType);
         this.available = available;
@@ -22,4 +22,9 @@ public class Deliverer extends User {
 
     public boolean isAvailable() { return available; }
     public void setAvailable(boolean available) { this.available = available; }
+    @Override
+    public void print(){
+        super.print();
+        System.out.println("Deliverer [vehicleType=" + vehicleType + ", available=" + available + "]");
+    }
 }

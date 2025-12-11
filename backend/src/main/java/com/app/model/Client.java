@@ -14,4 +14,9 @@ public class Client extends User {
 
     public String getAddress() { return address; }
     public void setAddress(String address) { this.address = address; }
+    @Override
+    public void print(){
+        super.print();
+        System.out.println("Client [address=" + address + "]");
+    }
 }

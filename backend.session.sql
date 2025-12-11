@@ -78,3 +78,7 @@ VALUES
 
 --@block
 SELECT * FROM users;
+SELECT * FROM deliverer;
+
+--@block
+DELETE FROM users where email = "walid@gmail.com";

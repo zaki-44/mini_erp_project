@@ -75,4 +75,11 @@ public class DeliveryPackage {
 
     public Timestamp getCreatedAt() { return createdAt; }
     public void setCreatedAt(Timestamp createdAt) { this.createdAt = createdAt; }
+    public void print(){
+        System.out.println("DeliveryPackage [idPackage=" + idPackage + ", idClientSource=" + idClientSource +
+        ", idClientDestination=" + idClientDestination + ", vehicleTypeNeeded=" + vehicleTypeNeeded +
+        ", addressSource=" + addressSource + ", addressDestination=" + addressDestination +
+        ", weight=" + weight + ", price=" + price + ", dimensions=" + dimensions +
+        ", description=" + description + ", status=" + status + ", createdAt=" + createdAt + "]");
+    }
 }

@@ -37,4 +37,8 @@ public class Affectation {
 
     public Timestamp getAssignedAt() { return assignedAt; }
     public void setAssignedAt(Timestamp assignedAt) { this.assignedAt = assignedAt; }
+    public void print(){
+        System.out.println("Affectation [idAffectation=" + idAffectation + ", idDeliverer=" + idDeliverer +
+        ", idPackage=" + idPackage + ", status=" + status + ", assignedAt=" + assignedAt + "]");
+    }
 }
