@@ -5,6 +5,8 @@ import java.util.*;
 import com.app.dao.Interface.DAO;
 import com.app.model.User;
 import com.app.util.Database;
+//Tested
+
 
 public class UserDAO implements DAO<User>{
     private User mapResultSetToUser(ResultSet rs) throws SQLException {

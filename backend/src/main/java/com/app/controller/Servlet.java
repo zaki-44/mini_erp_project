@@ -5,7 +5,6 @@ import jakarta.servlet.http.*;
 import jakarta.servlet.annotation.*;
 import java.io.*;
 import java.util.List;
-import java.util.Map;
 import com.google.gson.Gson;
 
 
@@ -24,15 +23,14 @@ public class Servlet extends HttpServlet {
     }
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        DelivererDAO delivererDAO = new DelivererDAO();
-        Deliverer deliverer = null;
+        UserDAO userDAO = new UserDAO();
         resp.setContentType("application/json");
         PrintWriter out = resp.getWriter();
         try {
-            List<Deliverer> deliverers = delivererDAO.findAll();
-            for(Deliverer d : deliverers){
-                d.print();
-            }
+            userDAO.delete(2);
+            List<User> users = userDAO.findAll();
+            String usersJson = new Gson().toJson(users);
+            out.println(usersJson);            
         } catch (Exception e) {
             e.printStackTrace();
         }

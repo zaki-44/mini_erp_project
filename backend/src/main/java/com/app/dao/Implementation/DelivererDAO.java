@@ -7,7 +7,7 @@ import com.app.dao.Interface.DAO;
 import com.app.model.Deliverer;
 import com.app.util.Database;
 
-
+//Tested
 
 public class DelivererDAO implements DAO<Deliverer>{
     @Override
