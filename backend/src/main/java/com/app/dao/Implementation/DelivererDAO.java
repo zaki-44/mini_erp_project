@@ -120,7 +120,7 @@ public class DelivererDAO implements DAO<Deliverer>{
                     deliverer.setLastName(rs.getString("last_name"));
                     deliverer.setPhoneNumber(rs.getString("phone_number"));
                     deliverer.setVehicleType(rs.getString("vehicle_type"));
-                    deliverer.setAvailable(rs.getBoolean("available"));
+                    deliverer.setAvailable(rs.getBoolean("is_available"));
                     rs.close();
                 }
             }
