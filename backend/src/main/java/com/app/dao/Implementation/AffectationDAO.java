@@ -123,6 +123,29 @@ public class AffectationDAO implements DAO<Affectation> {
         return list;
     }
 
+    public List<Affectation> findByDelivererId(int delivererId) throws SQLException {
+        String sql = "SELECT * FROM affectation WHERE id_deliverer=?";
+        List<Affectation> list = new ArrayList<>();
+
+        try (Connection conn = Database.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, delivererId);
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapAffectation(rs));
+                }
+            }
+        }
+        catch(SQLException e) {
+            System.out.println("Error finding Affectations by Deliverer ID: " + e.getMessage());
+            throw e;
+        }
+
+        return list;
+    }
+    
     private Affectation mapAffectation(ResultSet rs) throws SQLException {
         Affectation a = new Affectation();
 
@@ -134,4 +157,7 @@ public class AffectationDAO implements DAO<Affectation> {
 
         return a;
     }
+
+    
+    
 }

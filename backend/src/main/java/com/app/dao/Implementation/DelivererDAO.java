@@ -4,6 +4,7 @@ import java.sql.*;
 import java.util.List;
 
 import com.app.dao.Interface.DAO;
+import com.app.model.Affectation;
 import com.app.model.Deliverer;
 import com.app.util.Database;
 
@@ -14,8 +15,8 @@ public class DelivererDAO implements DAO<Deliverer>{
         // Add to deliverer and users table
         String toUser = "INSERT INTO users (email, username, password_hash, first_name, last_name, phone_number, role) "
                    + "VALUES (?, ?, ?, ?, ?, ?, ?)";
-        String toDeliverer = "INSERT INTO deliverer (id, vehicle_type, is_available) "
-                   + "VALUES (?, ?, ?)";
+        String toDeliverer = "INSERT INTO deliverer (id, vehicle_type, is_available, max_weight) "
+                   + "VALUES (?, ?, ?, ?)";
         Connection conn = null;
         try {
             conn = Database.getConnection();
@@ -45,6 +46,7 @@ public class DelivererDAO implements DAO<Deliverer>{
             delivererStmt.setInt(1, userId);
             delivererStmt.setString(2, deliverer.getVehicleType());
             delivererStmt.setBoolean(3, deliverer.isAvailable());
+            delivererStmt.setDouble(4, deliverer.getMaxWeight());
             delivererStmt.executeUpdate();
             delivererStmt.close();
 
@@ -74,9 +76,9 @@ public class DelivererDAO implements DAO<Deliverer>{
     }
     @Override
     public void update(Deliverer deliverer) throws SQLException {
-        String updateUser = "UPDATE users SET email=?, username=?, password_hash=?, first_name=?, last_name=?, phone_number=?, role=? "
+        String updateUser = "UPDATE users SET email=?, username=?, password_hash=?, first_name=?, last_name=?, phone_number=?, role=?"
                    + "WHERE id=?";
-        String updateDeliverer = "UPDATE deliverer SET vehicle_type=?, is_available=? WHERE id=?";
+        String updateDeliverer = "UPDATE deliverer SET vehicle_type=?, is_available=?, max_weight=? WHERE id=?";
         Connection conn = null;
         try {
             conn = Database.getConnection();
@@ -89,14 +91,18 @@ public class DelivererDAO implements DAO<Deliverer>{
             userStmt.setString(5, deliverer.getLastName());
             userStmt.setString(6, deliverer.getPhoneNumber());
             userStmt.setString(7, "DELIVERER");
+
             userStmt.setInt(8, deliverer.getId());
+            
             userStmt.executeUpdate();
             userStmt.close();
 
             PreparedStatement delivererStmt = conn.prepareStatement(updateDeliverer);
             delivererStmt.setString(1, deliverer.getVehicleType());
             delivererStmt.setBoolean(2, deliverer.isAvailable());
-            delivererStmt.setInt(3, deliverer.getId());
+            delivererStmt.setDouble(3, deliverer.getMaxWeight());
+
+            delivererStmt.setInt(4, deliverer.getId());
             delivererStmt.executeUpdate();
             delivererStmt.close();
             conn.commit(); // Commit transaction
@@ -168,7 +174,7 @@ public class DelivererDAO implements DAO<Deliverer>{
     }
     @Override
     public Deliverer findById(int id) throws SQLException {
-        String sql = "SELECT u.id, u.email, u.username, u.password_hash, u.first_name, u.last_name, u.phone_number, d.vehicle_type , d.is_available "
+        String sql = "SELECT u.id, u.email, u.username, u.password_hash, u.first_name, u.last_name, u.phone_number, d.vehicle_type , d.is_available , d.max_weight "
                    + "FROM users u JOIN deliverer d ON u.id = d.id WHERE u.id=?";
         Deliverer deliverer = null;
         try (Connection conn = Database.getConnection();
@@ -177,16 +183,7 @@ public class DelivererDAO implements DAO<Deliverer>{
             stmt.setInt(1, id);
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
-                    deliverer = new Deliverer();
-                    deliverer.setId(rs.getInt("id"));
-                    deliverer.setEmail(rs.getString("email"));
-                    deliverer.setUsername(rs.getString("username"));
-                    deliverer.setPasswordHash(rs.getString("password_hash"));
-                    deliverer.setFirstName(rs.getString("first_name"));
-                    deliverer.setLastName(rs.getString("last_name"));
-                    deliverer.setPhoneNumber(rs.getString("phone_number"));
-                    deliverer.setVehicleType(rs.getString("vehicle_type"));
-                    deliverer.setAvailable(rs.getBoolean("is_available"));
+                    deliverer = mapDeliverer(rs);
                     rs.close();
                 }
             }
@@ -199,7 +196,7 @@ public class DelivererDAO implements DAO<Deliverer>{
     }
     @Override
     public List<Deliverer> findAll() throws SQLException {
-        String sql = "SELECT u.id, u.email, u.username, u.password_hash, u.first_name, u.last_name, u.phone_number, d.vehicle_type , d.is_available "
+        String sql = "SELECT u.id, u.email, u.username, u.password_hash, u.first_name, u.last_name, u.phone_number, d.vehicle_type , d.is_available, d.max_weight "
                    + "FROM users u JOIN deliverer d ON u.id = d.id";
         List<Deliverer> deliverers = new java.util.ArrayList<>();
         try (Connection conn = Database.getConnection();
@@ -207,16 +204,7 @@ public class DelivererDAO implements DAO<Deliverer>{
              ResultSet rs = stmt.executeQuery()) {
 
             while (rs.next()) {
-                Deliverer deliverer = new Deliverer();
-                deliverer.setId(rs.getInt("id"));
-                deliverer.setEmail(rs.getString("email"));
-                deliverer.setUsername(rs.getString("username"));
-                deliverer.setPasswordHash(rs.getString("password_hash"));
-                deliverer.setFirstName(rs.getString("first_name"));
-                deliverer.setLastName(rs.getString("last_name"));
-                deliverer.setPhoneNumber(rs.getString("phone_number"));
-                deliverer.setVehicleType(rs.getString("vehicle_type"));
-                deliverer.setAvailable(rs.getBoolean("is_available"));
+                Deliverer deliverer = mapDeliverer(rs);
                 deliverers.add(deliverer);
             }
         }
@@ -227,9 +215,29 @@ public class DelivererDAO implements DAO<Deliverer>{
         return deliverers;
     }
 
+    private Deliverer mapDeliverer(ResultSet rs) throws SQLException {
+        try{
+            Deliverer deliverer = new Deliverer();
+            deliverer.setId(rs.getInt("id"));
+            deliverer.setEmail(rs.getString("email"));
+            deliverer.setUsername(rs.getString("username"));
+            deliverer.setPasswordHash(rs.getString("password_hash"));
+            deliverer.setFirstName(rs.getString("first_name"));
+            deliverer.setLastName(rs.getString("last_name"));
+            deliverer.setPhoneNumber(rs.getString("phone_number"));
+            deliverer.setVehicleType(rs.getString("vehicle_type"));
+            deliverer.setAvailable(rs.getBoolean("is_available"));
+            deliverer.setMaxWeight(rs.getDouble("max_weight"));
+            return deliverer;
+        }
+        catch(SQLException e){
+            System.out.println("Error mapping deliverer: " + e.getMessage());
+            throw e;
+        }
+    }
 
     public List<Deliverer> findAllAvailable() throws SQLException {
-        String sql = "SELECT u.id, u.email, u.username, u.password_hash, u.first_name, u.last_name, u.phone_number, d.vehicle_type , d.is_available "
+        String sql = "SELECT u.id, u.email, u.username, u.password_hash, u.first_name, u.last_name, u.phone_number, d.vehicle_type , d.is_available , d.max_weight "
                    + "FROM users u JOIN deliverer d ON u.id = d.id WHERE d.is_available = TRUE";
         List<Deliverer> deliverers = new java.util.ArrayList<>();
         try (Connection conn = Database.getConnection();
@@ -237,16 +245,7 @@ public class DelivererDAO implements DAO<Deliverer>{
              ResultSet rs = stmt.executeQuery()) {
 
             while (rs.next()) {
-                Deliverer deliverer = new Deliverer();
-                deliverer.setId(rs.getInt("id"));
-                deliverer.setEmail(rs.getString("email"));
-                deliverer.setUsername(rs.getString("username"));
-                deliverer.setPasswordHash(rs.getString("password_hash"));
-                deliverer.setFirstName(rs.getString("first_name"));
-                deliverer.setLastName(rs.getString("last_name"));
-                deliverer.setPhoneNumber(rs.getString("phone_number"));
-                deliverer.setVehicleType(rs.getString("vehicle_type"));
-                deliverer.setAvailable(rs.getBoolean("is_available"));
+                Deliverer deliverer = mapDeliverer(rs);
                 deliverers.add(deliverer);
             }
         }
@@ -256,4 +255,28 @@ public class DelivererDAO implements DAO<Deliverer>{
         }
         return deliverers;
     }
+
+    public List<Deliverer> findByAffectation(Affectation aff) throws SQLException {
+        String sql = "SELECT u.id, u.email, u.username, u.password_hash, u.first_name, u.last_name, u.phone_number, d.vehicle_type , d.is_available , d.max_weight "
+                   + "FROM users u JOIN deliverer d ON u.id = d.id "
+                   + "JOIN affectation a ON d.id = a.id_deliverer WHERE a.id_affectation=?";
+        List<Deliverer> deliverers = new java.util.ArrayList<>();
+        try (Connection conn = Database.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, aff.getIdAffectation());
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    Deliverer deliverer = mapDeliverer(rs);
+                    deliverers.add(deliverer);
+                }
+            }
+        }
+        catch(SQLException e){
+            System.out.println("Error finding deliverers by affectation: " + e.getMessage());
+            throw e;
+        }
+        return deliverers;
+    }
+
 }

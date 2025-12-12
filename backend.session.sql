@@ -21,6 +21,7 @@ CREATE TABLE client (
 CREATE TABLE deliverer (
     id INT PRIMARY KEY,
     vehicle_type ENUM('CAR', 'BIKE', 'TRUCK') NOT NULL,
+    max_weight FLOAT NOT NULL,
     is_available BOOLEAN DEFAULT TRUE,
     FOREIGN KEY (id) REFERENCES users(id) ON DELETE CASCADE
 );
@@ -127,3 +128,11 @@ SELECT * FROM package;
 --@block
 ALTER TABLE affectation 
 MODIFY COLUMN status ENUM('PENDING', 'ACCEPTED', 'REJECTED', 'COMPLETED') NOT NULL;
+
+--@block add column max_weight to deliverer
+ALTER TABLE deliverer 
+ADD COLUMN max_weight FLOAT NOT NULL;
+
+
+--@block 
+SELECT * FROM deliverer;
