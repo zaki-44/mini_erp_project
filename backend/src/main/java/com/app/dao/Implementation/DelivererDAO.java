@@ -8,7 +8,7 @@ import com.app.model.Deliverer;
 import com.app.util.Database;
 
 //Tested
-
+//TODO Add transaction management for insert (users + deliverer tables) 
 public class DelivererDAO implements DAO<Deliverer>{
     @Override
     public void insert(Deliverer deliverer) throws SQLException {
@@ -17,7 +17,11 @@ public class DelivererDAO implements DAO<Deliverer>{
                    + "VALUES (?, ?, ?, ?, ?, ?, ?)";
         String toDeliverer = "INSERT INTO deliverer (id, vehicle_type, is_available) "
                    + "VALUES (?, ?, ?)";
-        try (Connection conn = Database.getConnection()){
+        Connection conn = null;
+        try {
+            conn = Database.getConnection();
+            conn.setAutoCommit(false);  // Start transaction so both inserts succeed or fail together
+
             PreparedStatement userStmt = conn.prepareStatement(toUser, Statement.RETURN_GENERATED_KEYS);
             userStmt.setString(1, deliverer.getEmail());
             userStmt.setString(2, deliverer.getUsername());
@@ -44,10 +48,31 @@ public class DelivererDAO implements DAO<Deliverer>{
             delivererStmt.setBoolean(3, deliverer.isAvailable());
             delivererStmt.executeUpdate();
             delivererStmt.close();
+
+            conn.commit(); // Commit transaction
         }
         catch(SQLException e){
+            if (conn != null) {
+            try {
+                    conn.rollback();
+                } catch (SQLException rollbackEx) {
+                    System.err.println("Failed to rollback: " + rollbackEx.getMessage());
+                    // Don't throw - original exception is more important
+                }
+            }
             System.out.println("Error inserting deliverer: " + e.getMessage());
             throw e;
+        }
+        finally {
+            // 🔥 RESTORE AUTO-COMMIT AND CLOSE CONNECTION
+            if (conn != null) {
+                try {
+                    conn.setAutoCommit(true); // Restore default
+                    conn.close();
+                } catch (SQLException closeEx) {
+                    System.err.println("Failed to close connection: " + closeEx.getMessage());
+                }
+            }
         }
     }
     @Override

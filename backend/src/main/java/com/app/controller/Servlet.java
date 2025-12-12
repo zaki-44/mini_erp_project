@@ -6,8 +6,6 @@ import jakarta.servlet.annotation.*;
 import java.io.*;
 import java.util.List;
 import com.google.gson.Gson;
-import com.app.model.Enums.AffectationStatus;
-import com.app.model.Enums.NotificationType;
 import com.app.model.Enums.PackageStatus;
 import com.app.model.Enums.VehicleType;
 import com.app.dao.Implementation.*;
