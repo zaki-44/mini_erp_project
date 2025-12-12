@@ -18,8 +18,10 @@ public class ClientDAO implements DAO<Client> {
                 + "VALUES (?, ?, ?, ?, ?, ?, ?)";
 
         String insertClient = "INSERT INTO client (id, address) VALUES (?, ?)";
-
-        try (Connection conn = Database.getConnection()) {
+        Connection conn = null;
+        try {
+            conn = Database.getConnection();
+            conn.setAutoCommit(false);
 
             PreparedStatement userStmt = conn.prepareStatement(insertUser, Statement.RETURN_GENERATED_KEYS);
             userStmt.setString(1, client.getEmail());
@@ -48,10 +50,28 @@ public class ClientDAO implements DAO<Client> {
             clientStmt.setString(2, client.getAddress());
             clientStmt.executeUpdate();
             clientStmt.close();
+            conn.commit();
 
-        } catch (SQLException e) {
+        } catch(SQLException e){
+            if (conn != null) {
+            try {
+                    conn.rollback();
+                } catch (SQLException rollbackEx) {
+                    System.err.println("Failed to rollback: " + rollbackEx.getMessage());
+                }
+            }
             System.out.println("Error inserting client: " + e.getMessage());
             throw e;
+        }
+        finally {
+            if (conn != null) {
+                try {
+                    conn.setAutoCommit(true);
+                    conn.close();
+                } catch (SQLException closeEx) {
+                    System.err.println("Failed to close connection: " + closeEx.getMessage());
+                }
+            }
         }
     }
 
@@ -61,8 +81,10 @@ public class ClientDAO implements DAO<Client> {
                 + "WHERE id=?";
 
         String updateClient = "UPDATE client SET address=? WHERE id=?";
-
-        try (Connection conn = Database.getConnection()) {
+        Connection conn = null;
+        try {
+            conn = Database.getConnection();
+            conn.setAutoCommit(false);
 
             PreparedStatement userStmt = conn.prepareStatement(updateUser);
             userStmt.setString(1, client.getEmail());
@@ -81,19 +103,41 @@ public class ClientDAO implements DAO<Client> {
             clientStmt.setInt(2, client.getId());
             clientStmt.executeUpdate();
             clientStmt.close();
+            conn.commit();
 
-        } catch (SQLException e) {
+        } catch(SQLException e){
+            if (conn != null) {
+            try {
+                    conn.rollback();
+                } catch (SQLException rollbackEx) {
+                    System.err.println("Failed to rollback: " + rollbackEx.getMessage());
+                }
+            }
             System.out.println("Error updating client: " + e.getMessage());
             throw e;
+        }
+        finally {
+            if (conn != null) {
+                try {
+                    conn.setAutoCommit(true);
+                    conn.close();
+                } catch (SQLException closeEx) {
+                    System.err.println("Failed to close connection: " + closeEx.getMessage());
+                }
+            }
         }
     }
 
     @Override
     public void delete(int id) throws SQLException {
+        //Walid : You can delete only the user and the client will be deleted 
+        // automatically because of foreign key with cascade delete
         String deleteClient = "DELETE FROM client WHERE id=?";
         String deleteUser = "DELETE FROM users WHERE id=?";
-
-        try (Connection conn = Database.getConnection()) {
+        Connection conn = null;
+        try {
+            conn = Database.getConnection();
+            conn.setAutoCommit(false);
 
             PreparedStatement clientStmt = conn.prepareStatement(deleteClient);
             clientStmt.setInt(1, id);
@@ -104,10 +148,28 @@ public class ClientDAO implements DAO<Client> {
             userStmt.setInt(1, id);
             userStmt.executeUpdate();
             userStmt.close();
+            conn.commit();
 
-        } catch (SQLException e) {
+        } catch(SQLException e){
+            if (conn != null) {
+            try {
+                    conn.rollback();
+                } catch (SQLException rollbackEx) {
+                    System.err.println("Failed to rollback: " + rollbackEx.getMessage());
+                }
+            }
             System.out.println("Error deleting client: " + e.getMessage());
             throw e;
+        }
+        finally {
+            if (conn != null) {
+                try {
+                    conn.setAutoCommit(true);
+                    conn.close();
+                } catch (SQLException closeEx) {
+                    System.err.println("Failed to close connection: " + closeEx.getMessage());
+                }
+            }
         }
     }
 

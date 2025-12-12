@@ -8,7 +8,6 @@ import com.app.model.Deliverer;
 import com.app.util.Database;
 
 //Tested
-//TODO Add transaction management for insert (users + deliverer tables) 
 public class DelivererDAO implements DAO<Deliverer>{
     @Override
     public void insert(Deliverer deliverer) throws SQLException {
@@ -57,17 +56,15 @@ public class DelivererDAO implements DAO<Deliverer>{
                     conn.rollback();
                 } catch (SQLException rollbackEx) {
                     System.err.println("Failed to rollback: " + rollbackEx.getMessage());
-                    // Don't throw - original exception is more important
                 }
             }
             System.out.println("Error inserting deliverer: " + e.getMessage());
             throw e;
         }
         finally {
-            // 🔥 RESTORE AUTO-COMMIT AND CLOSE CONNECTION
             if (conn != null) {
                 try {
-                    conn.setAutoCommit(true); // Restore default
+                    conn.setAutoCommit(true);
                     conn.close();
                 } catch (SQLException closeEx) {
                     System.err.println("Failed to close connection: " + closeEx.getMessage());
@@ -80,7 +77,10 @@ public class DelivererDAO implements DAO<Deliverer>{
         String updateUser = "UPDATE users SET email=?, username=?, password_hash=?, first_name=?, last_name=?, phone_number=?, role=? "
                    + "WHERE id=?";
         String updateDeliverer = "UPDATE deliverer SET vehicle_type=?, is_available=? WHERE id=?";
-        try (Connection conn = Database.getConnection()){
+        Connection conn = null;
+        try {
+            conn = Database.getConnection();
+            conn.setAutoCommit(false);  // Start transaction so both updates succeed or fail together
             PreparedStatement userStmt = conn.prepareStatement(updateUser);
             userStmt.setString(1, deliverer.getEmail());
             userStmt.setString(2, deliverer.getUsername());
@@ -99,17 +99,40 @@ public class DelivererDAO implements DAO<Deliverer>{
             delivererStmt.setInt(3, deliverer.getId());
             delivererStmt.executeUpdate();
             delivererStmt.close();
+            conn.commit(); // Commit transaction
         }
         catch(SQLException e){
+            if (conn != null) {
+            try {
+                    conn.rollback();
+                } catch (SQLException rollbackEx) {
+                    System.err.println("Failed to rollback: " + rollbackEx.getMessage());
+                }
+            }
             System.out.println("Error updating deliverer: " + e.getMessage());
             throw e;
+        }
+        finally {
+            if (conn != null) {
+                try {
+                    conn.setAutoCommit(true);
+                    conn.close();
+                } catch (SQLException closeEx) {
+                    System.err.println("Failed to close connection: " + closeEx.getMessage());
+                }
+            }
         }
     }
     @Override
     public void delete(int id) throws SQLException {
+        //Walid : You can delete only the user and the deliverer will be deleted 
+        // automatically because of foreign key with cascade delete
         String deleteDeliverer = "DELETE FROM deliverer WHERE id=?";
         String deleteUser = "DELETE FROM users WHERE id=?";
-        try (Connection conn = Database.getConnection()){
+        Connection conn = null;
+        try {
+            conn = Database.getConnection();
+            conn.setAutoCommit(false);  // Start transaction so both deletes succeed or fail together
             PreparedStatement delivererStmt = conn.prepareStatement(deleteDeliverer);
             delivererStmt.setInt(1, id);
             delivererStmt.executeUpdate();
@@ -119,10 +142,28 @@ public class DelivererDAO implements DAO<Deliverer>{
             userStmt.setInt(1, id);
             userStmt.executeUpdate();
             userStmt.close();
+            conn.commit(); // Commit transaction
         }
         catch(SQLException e){
+            if (conn != null) {
+            try {
+                    conn.rollback();
+                } catch (SQLException rollbackEx) {
+                    System.err.println("Failed to rollback: " + rollbackEx.getMessage());
+                }
+            }
             System.out.println("Error deleting deliverer: " + e.getMessage());
             throw e;
+        }
+        finally {
+            if (conn != null) {
+                try {
+                    conn.setAutoCommit(true);
+                    conn.close();
+                } catch (SQLException closeEx) {
+                    System.err.println("Failed to close connection: " + closeEx.getMessage());
+                }
+            }
         }
     }
     @Override
