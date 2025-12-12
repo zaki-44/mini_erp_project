@@ -227,4 +227,33 @@ public class DelivererDAO implements DAO<Deliverer>{
         return deliverers;
     }
 
+
+    public List<Deliverer> findAllAvailable() throws SQLException {
+        String sql = "SELECT u.id, u.email, u.username, u.password_hash, u.first_name, u.last_name, u.phone_number, d.vehicle_type , d.is_available "
+                   + "FROM users u JOIN deliverer d ON u.id = d.id WHERE d.is_available = TRUE";
+        List<Deliverer> deliverers = new java.util.ArrayList<>();
+        try (Connection conn = Database.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+
+            while (rs.next()) {
+                Deliverer deliverer = new Deliverer();
+                deliverer.setId(rs.getInt("id"));
+                deliverer.setEmail(rs.getString("email"));
+                deliverer.setUsername(rs.getString("username"));
+                deliverer.setPasswordHash(rs.getString("password_hash"));
+                deliverer.setFirstName(rs.getString("first_name"));
+                deliverer.setLastName(rs.getString("last_name"));
+                deliverer.setPhoneNumber(rs.getString("phone_number"));
+                deliverer.setVehicleType(rs.getString("vehicle_type"));
+                deliverer.setAvailable(rs.getBoolean("is_available"));
+                deliverers.add(deliverer);
+            }
+        }
+        catch(SQLException e){
+            System.out.println("Error finding all available deliverers: " + e.getMessage());
+            throw e;
+        }
+        return deliverers;
+    }
 }
