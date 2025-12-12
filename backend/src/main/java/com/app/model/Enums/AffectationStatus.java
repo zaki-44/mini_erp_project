@@ -3,5 +3,6 @@ package com.app.model.Enums;
 public enum AffectationStatus {
     PENDING,
     ACCEPTED,
-    REJECTED
+    REJECTED,
+    COMPLETED
 }

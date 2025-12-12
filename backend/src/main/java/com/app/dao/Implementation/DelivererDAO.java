@@ -47,6 +47,7 @@ public class DelivererDAO implements DAO<Deliverer>{
         }
         catch(SQLException e){
             System.out.println("Error inserting deliverer: " + e.getMessage());
+            throw e;
         }
     }
     @Override
@@ -75,8 +76,8 @@ public class DelivererDAO implements DAO<Deliverer>{
             delivererStmt.close();
         }
         catch(SQLException e){
-            deliverer.print();
             System.out.println("Error updating deliverer: " + e.getMessage());
+            throw e;
         }
     }
     @Override
@@ -95,8 +96,8 @@ public class DelivererDAO implements DAO<Deliverer>{
             userStmt.close();
         }
         catch(SQLException e){
-            
             System.out.println("Error deleting deliverer: " + e.getMessage());
+            throw e;
         }
     }
     @Override
@@ -125,6 +126,7 @@ public class DelivererDAO implements DAO<Deliverer>{
             }
             catch(SQLException e){
                 System.out.println("Error finding deliverer by ID: " + e.getMessage());
+                throw e;
             }
         }
         return deliverer;
@@ -154,6 +156,7 @@ public class DelivererDAO implements DAO<Deliverer>{
         }
         catch(SQLException e){
             System.out.println("Error finding all deliverers: " + e.getMessage());
+            throw e;
         }
         return deliverers;
     }
