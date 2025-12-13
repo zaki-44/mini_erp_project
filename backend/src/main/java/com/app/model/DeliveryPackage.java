@@ -10,8 +10,8 @@ public class DeliveryPackage {
     private VehicleType vehicleTypeNeeded;
     private String addressSource;
     private String addressDestination;
-    private float weight;
-    private float price;
+    private double weight;
+    private double price;
     private String dimensions;
     private String description;
     private PackageStatus status;
@@ -23,7 +23,7 @@ public class DeliveryPackage {
 
     public DeliveryPackage(int idPackage, int idClientSource, int idClientDestination,
                            VehicleType vehicleTypeNeeded, String addressSource, String addressDestination,
-                           float weight, float price, String dimensions, String description,
+                           double weight, double price, String dimensions, String description,
                            PackageStatus status, Timestamp createdAt) {
         this.idPackage = idPackage;
         this.idClientSource = idClientSource;
@@ -58,11 +58,11 @@ public class DeliveryPackage {
     public String getAddressDestination() { return addressDestination; }
     public void setAddressDestination(String addressDestination) { this.addressDestination = addressDestination; }
 
-    public float getWeight() { return weight; }
-    public void setWeight(float weight) { this.weight = weight; }
+    public double getWeight() { return weight; }
+    public void setWeight(double weight) { this.weight = weight; }
 
-    public float getPrice() { return price; }
-    public void setPrice(float price) { this.price = price; }
+    public double getPrice() { return price; }
+    public void setPrice(double price) { this.price = price; }
 
     public String getDimensions() { return dimensions; }
     public void setDimensions(String dimensions) { this.dimensions = dimensions; }

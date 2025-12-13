@@ -6,6 +6,7 @@ import java.util.List;
 import com.app.dao.Interface.DAO;
 import com.app.model.Affectation;
 import com.app.model.Deliverer;
+import com.app.model.Enums.VehicleType;
 import com.app.util.Database;
 
 //Tested
@@ -44,7 +45,7 @@ public class DelivererDAO implements DAO<Deliverer>{
             // Insert into deliverers table
             PreparedStatement delivererStmt = conn.prepareStatement(toDeliverer);
             delivererStmt.setInt(1, userId);
-            delivererStmt.setString(2, deliverer.getVehicleType());
+            delivererStmt.setString(2, deliverer.getVehicleType().name());
             delivererStmt.setBoolean(3, deliverer.isAvailable());
             delivererStmt.setDouble(4, deliverer.getMaxWeight());
             delivererStmt.executeUpdate();
@@ -98,7 +99,7 @@ public class DelivererDAO implements DAO<Deliverer>{
             userStmt.close();
 
             PreparedStatement delivererStmt = conn.prepareStatement(updateDeliverer);
-            delivererStmt.setString(1, deliverer.getVehicleType());
+            delivererStmt.setString(1, deliverer.getVehicleType().name());
             delivererStmt.setBoolean(2, deliverer.isAvailable());
             delivererStmt.setDouble(3, deliverer.getMaxWeight());
 
@@ -225,7 +226,7 @@ public class DelivererDAO implements DAO<Deliverer>{
             deliverer.setFirstName(rs.getString("first_name"));
             deliverer.setLastName(rs.getString("last_name"));
             deliverer.setPhoneNumber(rs.getString("phone_number"));
-            deliverer.setVehicleType(rs.getString("vehicle_type"));
+            deliverer.setVehicleType(VehicleType.valueOf(rs.getString("vehicle_type")));
             deliverer.setAvailable(rs.getBoolean("is_available"));
             deliverer.setMaxWeight(rs.getDouble("max_weight"));
             return deliverer;

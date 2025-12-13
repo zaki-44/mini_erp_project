@@ -30,8 +30,8 @@ public class DeliveryPackageDAO implements DAO<DeliveryPackage> {
             stmt.setString(3, pkg.getVehicleTypeNeeded() != null ? pkg.getVehicleTypeNeeded().name() : null);
             stmt.setString(4, pkg.getAddressSource());
             stmt.setString(5, pkg.getAddressDestination());
-            stmt.setFloat(6, pkg.getWeight());
-            stmt.setFloat(7, pkg.getPrice());
+            stmt.setDouble(6, pkg.getWeight());
+            stmt.setDouble(7, pkg.getPrice());
             stmt.setString(8, pkg.getDimensions());
             stmt.setString(9, pkg.getDescription());
             stmt.setString(10, pkg.getStatus() != null ? pkg.getStatus().name() : PackageStatus.CREATED.name());
@@ -65,8 +65,8 @@ public class DeliveryPackageDAO implements DAO<DeliveryPackage> {
             stmt.setString(3, pkg.getVehicleTypeNeeded() != null ? pkg.getVehicleTypeNeeded().name() : null);
             stmt.setString(4, pkg.getAddressSource());
             stmt.setString(5, pkg.getAddressDestination());
-            stmt.setFloat(6, pkg.getWeight());
-            stmt.setFloat(7, pkg.getPrice());
+            stmt.setDouble(6, pkg.getWeight());
+            stmt.setDouble(7, pkg.getPrice());
             stmt.setString(8, pkg.getDimensions());
             stmt.setString(9, pkg.getDescription());
             stmt.setString(10, pkg.getStatus() != null ? pkg.getStatus().name() : PackageStatus.CREATED.name());
@@ -137,8 +137,8 @@ public class DeliveryPackageDAO implements DAO<DeliveryPackage> {
 
         pkg.setAddressSource(rs.getString("address_source"));
         pkg.setAddressDestination(rs.getString("address_destination"));
-        pkg.setWeight(rs.getFloat("weight"));
-        pkg.setPrice(rs.getFloat("price"));
+        pkg.setWeight(rs.getDouble("weight"));
+        pkg.setPrice(rs.getDouble("price"));
         pkg.setDimensions(rs.getString("dimensions"));
         pkg.setDescription(rs.getString("description"));
 

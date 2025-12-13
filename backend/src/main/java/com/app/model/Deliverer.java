@@ -10,9 +10,9 @@ public class Deliverer extends User {
 
     public Deliverer(int id, String email, String username, String passwordHash,
                      String firstName, String lastName, String phoneNumber, String role,
-                     String vehicleType, boolean available, double maxWeight) {
+                     VehicleType vehicleType, boolean available, double maxWeight) {
         super(id, email, username, passwordHash, firstName, lastName, phoneNumber, role);
-        this.vehicleType = VehicleType.valueOf(vehicleType);
+        this.vehicleType = vehicleType;
         this.available = available;
         this.maxWeight = maxWeight;
     }
@@ -21,8 +21,8 @@ public class Deliverer extends User {
     public double getMaxWeight() { return maxWeight; }
     public void setMaxWeight(double maxWeight) { this.maxWeight = maxWeight; }
     
-    public String getVehicleType() { return vehicleType.name(); }
-    public void setVehicleType(String vehicleType) { this.vehicleType = VehicleType.valueOf(vehicleType); }
+    public VehicleType getVehicleType() { return vehicleType; }
+    public void setVehicleType(VehicleType vehicleType) { this.vehicleType = vehicleType; }
 
     public boolean isAvailable() { return available; }
     public void setAvailable(boolean available) { this.available = available; }

@@ -1,7 +1,5 @@
 package com.app.service;
 
-import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -23,16 +21,14 @@ public class DeliveryAssignmentService {
     private static final double VEHICLE_MATCH_WEIGHT = 40.0;
     private static final double WORKLOAD_PENALTY_PER_ASSIGNMENT = 10.0;
     private static final double PERFORMANCE_BONUS_MAX = 20.0;
-    private static final double RESPONSE_BONUS_MAX = 10.0;
-    private static final double AREA_MATCH_BONUS = 5.0;
     
     // Vehicle compatibility matrix
-    private static final Map<VehicleType, List<String>> VEHICLE_COMPATIBILITY = new HashMap<>();
-    static {
-        VEHICLE_COMPATIBILITY.put(VehicleType.BIKE, Arrays.asList("BIKE"));
-        VEHICLE_COMPATIBILITY.put(VehicleType.CAR, Arrays.asList("CAR", "BIKE"));
-        VEHICLE_COMPATIBILITY.put(VehicleType.TRUCK, Arrays.asList("TRUCK", "CAR", "BIKE"));
-    }
+    private static final Map<VehicleType, List<VehicleType>> VEHICLE_COMPATIBILITY =
+    Map.of(
+        VehicleType.BIKE,  List.of(VehicleType.BIKE),
+        VehicleType.CAR,   List.of(VehicleType.BIKE, VehicleType.CAR),
+        VehicleType.TRUCK, List.of(VehicleType.BIKE, VehicleType.CAR, VehicleType.TRUCK)
+    );
 
 
     public DeliveryAssignmentService() {
@@ -41,40 +37,35 @@ public class DeliveryAssignmentService {
         this.affectationDAO = new AffectationDAO();
     }
     
-    private boolean isVehicleUpgrade(String delivererVehicle, VehicleType neededVehicle) {
-        if (neededVehicle == VehicleType.BIKE) {
-            return delivererVehicle.equals("CAR");
-        } else if (neededVehicle == VehicleType.CAR) {
-            return delivererVehicle.equals("TRUCK");
-        }
-        return false;
-    }
     private double calculateVehicleScore(Deliverer deliverer, DeliveryPackage pkg) {
-        if (pkg.getVehicleTypeNeeded() == null) {
-            return 20.0; // No specific vehicle requirement - neutral
+        VehicleType needed = pkg.getVehicleTypeNeeded();
+        VehicleType has = deliverer.getVehicleType();
+        if (needed == null) {
+            return 20.0;
         }
-        
-        String delivererVehicle = deliverer.getVehicleType();
-        VehicleType neededVehicle = pkg.getVehicleTypeNeeded();
-        
+        if(has == null){
+            return -100.0;
+        }
+        // HARD DISQUALIFICATION
+        if (!VEHICLE_COMPATIBILITY.get(has).contains(needed)) {
+            return -100.0;
+        }
+
         // Perfect match
-        if (delivererVehicle.equals(neededVehicle.name())) {
-            return VEHICLE_MATCH_WEIGHT; // Full points
+        if (has == needed) {
+            return VEHICLE_MATCH_WEIGHT;
         }
 
-        
-
-        // Check compatibility (can deliverer's vehicle handle the package?)
-        if (VEHICLE_COMPATIBILITY.get(neededVehicle).contains(delivererVehicle)) {
-            // Compatible but not perfect
-            if (isVehicleUpgrade(delivererVehicle, neededVehicle)) {
-                // Upgrade (e.g., TRUCK for CAR package) - less efficient but works
-                return VEHICLE_MATCH_WEIGHT * 0.75; // 75% of full points
-            }
-            return VEHICLE_MATCH_WEIGHT * 0.5; // 50% for basic compatibility | Truck for Bike
+        // Oversized vehicle penalties (inefficiency)
+        if (has == VehicleType.TRUCK && needed != VehicleType.TRUCK) {
+            return VEHICLE_MATCH_WEIGHT * 0.4;
         }
-        
-        return -20.0; // Incompatible vehicle - heavy penalty
+
+        if (has == VehicleType.CAR && needed == VehicleType.BIKE) {
+            return VEHICLE_MATCH_WEIGHT * 0.6;
+        }
+
+        return VEHICLE_MATCH_WEIGHT * 0.5;
     }
     private double calculateWeightCapacityScore(Deliverer deliverer, DeliveryPackage pkg) {
         if (pkg.getWeight() <= 0 || deliverer.getMaxWeight() <= 0) {
@@ -95,61 +86,65 @@ public class DeliveryAssignmentService {
             return -5.0; // Very light load (<20%) - inefficient use
         }
     }
-    private double calculateWorkloadPenalty(Deliverer deliverer) throws Exception {
-        List<Affectation> allAffectations = affectationDAO.findAll();
+    private double calculateWorkloadPenalty(List<Affectation> allAffectations) throws Exception {
         int activeAssignments = 0;
-        
+
         for (Affectation aff : allAffectations) {
-            if (aff.getIdDeliverer() == deliverer.getId() && 
-                (aff.getStatus() == AffectationStatus.PENDING || 
-                 aff.getStatus() == AffectationStatus.ACCEPTED)) {
+            if (aff.getStatus() == AffectationStatus.PENDING || 
+                 aff.getStatus() == AffectationStatus.ACCEPTED) {
                 activeAssignments++;
             }
         }
         
         return activeAssignments * WORKLOAD_PENALTY_PER_ASSIGNMENT;
     }
-    
-    
-    public double calculateScore(Deliverer deliverer, DeliveryPackage pkg) {
+    private double calculateExperienceBonus(List<Affectation> allAffectations) {
+        try{
+            int completedAssignments = 0;
+            for (Affectation aff : allAffectations) {
+                if (aff.getStatus() == AffectationStatus.COMPLETED) {
+                    completedAssignments++;
+                }
+            }
+            return Math.min(completedAssignments, PERFORMANCE_BONUS_MAX);
+        }
+        catch(Exception e){
+            System.out.println("Error calculating experience bonus: " + e.getMessage());
+            return 0.0;
+        }
+    }
+
+    public double calculateScore(Deliverer deliverer, DeliveryPackage pkg , List<Affectation> affs) {
         try {
-            double score = 100.0; // Base score
-            
-            // 1. Vehicle Type Match (CRITICAL - up to 40 points)
-            score += calculateVehicleScore(deliverer, pkg);
-            
-            // 2. Current Workload Penalty (IMPORTANT - negative)
-            score -= calculateWorkloadPenalty(deliverer);
-            
-            // 3. Performance History (IMPORTANT - up to 20 points)
-            score += calculatePerformanceScore(deliverer);
-            
-            // 4. Area Match Bonus (SMART ROUTING - up to 5 points)
-            // Must be in the same Area 
-            
-            // 5. Package Weight Match (EFFICIENCY - up to 10 points)
-            score += calculateWeightCapacityScore(deliverer, pkg);
-            
-            // 6. Experience Bonus (NEW DELIVERER SUPPORT)
-            score += calculateExperienceBonus(deliverer);
-            
-            return Math.max(0, score); // Never return negative score
-            
+            double vehicleScore = calculateVehicleScore(deliverer, pkg);
+            if (vehicleScore < 0) return Double.NEGATIVE_INFINITY;
+
+            double weightScore = calculateWeightCapacityScore(deliverer, pkg);
+            if (weightScore < -100.0) return Double.NEGATIVE_INFINITY;
+
+            double score = 0.0;
+
+            score += vehicleScore;
+            score += weightScore;
+            score -= calculateWorkloadPenalty(affs);
+            score += calculateExperienceBonus(affs);
+
+            return score;
+
         } catch (Exception e) {
-            System.out.println("Error calculating score: " + e.getMessage());
-            return 0.0; // Return minimum score on error
+            return Double.NEGATIVE_INFINITY;
         }
     }
     
-
-
     public Deliverer findBestDelivererForPackage(DeliveryPackage pkg) {
         try{
             Deliverer bestDeliverer = null;
             double bestScore = Double.NEGATIVE_INFINITY;
             List<Deliverer> availableDeliverers = delivererDAO.findAllAvailable();
             for (Deliverer deliverer : availableDeliverers) {
-                double score = calculateScore(deliverer, pkg);
+                List<Affectation> affectations = affectationDAO.findByDelivererId(deliverer.getId());
+                double score = calculateScore(deliverer, pkg , affectations);
+
                 if (score > bestScore) {
                     bestScore = score;
                     bestDeliverer = deliverer;
@@ -163,7 +158,7 @@ public class DeliveryAssignmentService {
         }
     }
    
-    public void autoAssignPackage(int packageId) {
+    public Deliverer autoAssignPackage(int packageId) {
         try{
             DeliveryPackage pkg = packageDAO.findById(packageId);
             if (pkg == null) {
@@ -176,14 +171,22 @@ public class DeliveryAssignmentService {
                 aff.setIdPackage(pkg.getIdPackage());
                 aff.setStatus(AffectationStatus.PENDING);
                 aff.setAssignedAt(new java.sql.Timestamp(System.currentTimeMillis()));
+                
                 pkg.setStatus(PackageStatus.ASSIGNED);
+                bestDeliverer.setAvailable(false);
+                
                 affectationDAO.insert(aff);
+                delivererDAO.update(bestDeliverer);
+                packageDAO.update(pkg);
+
+                return bestDeliverer;
             } else {
                 throw new IllegalStateException("No available deliverers found for package ID: " + packageId);
             }
         }
         catch(Exception e){
             System.out.println("Error during auto-assigning package: " + e.getMessage());
+            return null;
         }
     }
 
