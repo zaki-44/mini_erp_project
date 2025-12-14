@@ -2,6 +2,8 @@ package com.app.dao.Implementation;
 
 import com.app.dao.Interface.DAO;
 import com.app.model.Affectation;
+import com.app.model.Client;
+import com.app.model.DeliveryPackage;
 import com.app.model.Enums.AffectationStatus;
 import com.app.util.Database;
 
@@ -157,7 +159,24 @@ public class AffectationDAO implements DAO<Affectation> {
 
         return a;
     }
+    public Client getSourceClient(DeliveryPackage pkg){
+        String sql = "SELECT u.id, u.email, u.username, u.password_hash, u.first_name, u.last_name, u.phone_number, c.address , c.wilaya "
+                   + "FROM users u JOIN client c ON u.id = c.id WHERE c.id = ?";
+        Client client = null;
+        try (Connection conn = Database.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-    
-    
+            stmt.setInt(1, pkg.getIdClientSource());
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    client = new ClientDAO().mapResultSetToClient(rs);
+                }
+            }
+
+        } catch (SQLException e) {
+            System.out.println("Error finding client by ID: " + e.getMessage());
+        }
+        return client;
+    }
 }

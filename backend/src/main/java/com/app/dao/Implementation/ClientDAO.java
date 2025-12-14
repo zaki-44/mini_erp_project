@@ -225,7 +225,7 @@ public class ClientDAO implements DAO<Client> {
 
         return clients;
     }
-    private Client mapResultSetToClient(ResultSet rs) throws SQLException {
+    public Client mapResultSetToClient(ResultSet rs) throws SQLException {
         Client client = new Client();
         client.setId(rs.getInt("id"));
         client.setEmail(rs.getString("email"));

@@ -11,6 +11,7 @@ import com.app.model.Enums.AffectationStatus;
 import com.app.model.Enums.PackageStatus;
 import com.app.model.Enums.VehicleType;
 import com.app.model.Affectation;
+import com.app.model.Client;
 import com.app.model.Deliverer;
 
 public class DeliveryAssignmentService {
@@ -21,9 +22,9 @@ public class DeliveryAssignmentService {
     private static final double VEHICLE_MATCH_WEIGHT = 40.0;
     private static final double WORKLOAD_PENALTY_PER_ASSIGNMENT = 10.0;
     private static final double PERFORMANCE_BONUS_MAX = 20.0;
-    
+    private static final double EXPERIENCE_PER_DELIVERY = 2.0;
     // Vehicle compatibility matrix
-    private static final Map<VehicleType, List<VehicleType>> VEHICLE_COMPATIBILITY =
+    private static final Map<VehicleType, List<VehicleType>> DELIVERER_CAPABILITIES =
     Map.of(
         VehicleType.BIKE,  List.of(VehicleType.BIKE),
         VehicleType.CAR,   List.of(VehicleType.BIKE, VehicleType.CAR),
@@ -47,7 +48,7 @@ public class DeliveryAssignmentService {
             return -100.0;
         }
         // HARD DISQUALIFICATION
-        if (!VEHICLE_COMPATIBILITY.get(has).contains(needed)) {
+        if (!DELIVERER_CAPABILITIES.get(has).contains(needed)) {
             return -100.0;
         }
 
@@ -86,7 +87,7 @@ public class DeliveryAssignmentService {
             return -5.0; // Very light load (<20%) - inefficient use
         }
     }
-    private double calculateWorkloadPenalty(List<Affectation> allAffectations) throws Exception {
+    private double calculateWorkloadPenalty(List<Affectation> allAffectations){
         int activeAssignments = 0;
 
         for (Affectation aff : allAffectations) {
@@ -106,12 +107,15 @@ public class DeliveryAssignmentService {
                     completedAssignments++;
                 }
             }
-            return Math.min(completedAssignments, PERFORMANCE_BONUS_MAX);
+            return Math.min(completedAssignments * EXPERIENCE_PER_DELIVERY, PERFORMANCE_BONUS_MAX);
         }
         catch(Exception e){
             System.out.println("Error calculating experience bonus: " + e.getMessage());
             return 0.0;
         }
+    }
+    private boolean isSameWilaya(Deliverer d, Client c){
+        return d.getWilaya().equals(c.getWilaya());
     }
 
     public double calculateScore(Deliverer deliverer, DeliveryPackage pkg , List<Affectation> affs) {
@@ -121,9 +125,11 @@ public class DeliveryAssignmentService {
 
             double weightScore = calculateWeightCapacityScore(deliverer, pkg);
             if (weightScore < -100.0) return Double.NEGATIVE_INFINITY;
-
             double score = 0.0;
-
+            Client sourceClient = affectationDAO.getSourceClient(pkg);
+            if(!isSameWilaya(deliverer, sourceClient)){
+                return Double.NEGATIVE_INFINITY;
+            }
             score += vehicleScore;
             score += weightScore;
             score -= calculateWorkloadPenalty(affs);
@@ -132,6 +138,7 @@ public class DeliveryAssignmentService {
             return score;
 
         } catch (Exception e) {
+            System.out.println("Error calculating score for deliverer ID " + deliverer.getId() + ": " + e.getMessage());
             return Double.NEGATIVE_INFINITY;
         }
     }
@@ -175,6 +182,7 @@ public class DeliveryAssignmentService {
                 pkg.setStatus(PackageStatus.ASSIGNED);
                 bestDeliverer.setAvailable(false);
                 
+
                 affectationDAO.insert(aff);
                 delivererDAO.update(bestDeliverer);
                 packageDAO.update(pkg);
