@@ -4,6 +4,7 @@ import java.util.*;
 
 import com.app.dao.Interface.DAO;
 import com.app.model.User;
+import com.app.model.Enums.Role;
 import com.app.util.Database;
 //Tested
 
@@ -18,7 +19,7 @@ public class UserDAO implements DAO<User>{
         user.setFirstName(rs.getString("first_name"));
         user.setLastName(rs.getString("last_name"));
         user.setPhoneNumber(rs.getString("phone_number"));
-        user.setRole(rs.getString("role")); // convert DB string to enum
+        user.setRole(Role.valueOf(rs.getString("role")));
         return user;
     }
    @Override

@@ -8,6 +8,7 @@ import java.util.List;
 import com.google.gson.Gson;
 import com.app.model.Enums.PackageStatus;
 import com.app.model.Enums.VehicleType;
+import com.app.service.DeliveryAssignmentService;
 import com.app.dao.Implementation.*;
 import com.app.model.*;
 
@@ -16,10 +17,13 @@ import com.app.model.*;
 public class Servlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        String message = "Do post";
+        DeliveryAssignmentService assignmentService = new DeliveryAssignmentService();
+        Deliverer deliverer = assignmentService.autoAssignPackage(1);
         resp.setContentType("application/json");
         PrintWriter out = resp.getWriter();
-        out.println("{\"message\": \"" +"From server :" +message + "\"}");
+        Gson gson = new Gson();
+        String json = gson.toJson(deliverer);
+        out.println(json);
     }
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {

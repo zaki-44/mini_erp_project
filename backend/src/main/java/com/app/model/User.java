@@ -16,7 +16,7 @@ public class User {
     public User() {}
 
     public User(int id, String email, String username, String passwordHash,
-                String firstName, String lastName, String phoneNumber, String role) {
+                String firstName, String lastName, String phoneNumber, Role role) {
         this.id = id;
         this.email = email;
         this.username = username;
@@ -24,7 +24,7 @@ public class User {
         this.firstName = firstName;
         this.lastName = lastName;
         this.phoneNumber = phoneNumber;
-        this.role = Role.valueOf(role);
+        this.role = role;
     }
 
     // Getters and Setters
@@ -50,7 +50,7 @@ public class User {
     public void setPhoneNumber(String phoneNumber) { this.phoneNumber = phoneNumber; }
 
     public String getRole() { return role.name(); }
-    public void setRole(String role) { this.role = Role.valueOf(role); }
+    public void setRole(Role role) { this.role = role; }
     public void print(){
         System.out.println("User [id=" + id + ", email=" + email + ", username=" + username + ", passwordHash=" + passwordHash
         + ", firstName=" + firstName + ", lastName=" + lastName + ", phoneNumber=" + phoneNumber + ", role=" + role + "]");

@@ -1,4 +1,5 @@
 package com.app.model;
+import com.app.model.Enums.Role;
 import com.app.model.Enums.VehicleType;
 
 
@@ -9,7 +10,7 @@ public class Deliverer extends User {
     public Deliverer() {}
 
     public Deliverer(int id, String email, String username, String passwordHash,
-                     String firstName, String lastName, String phoneNumber, String role,
+                     String firstName, String lastName, String phoneNumber, Role role,
                      VehicleType vehicleType, boolean available, double maxWeight) {
         super(id, email, username, passwordHash, firstName, lastName, phoneNumber, role);
         this.vehicleType = vehicleType;

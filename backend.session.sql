@@ -71,68 +71,9 @@ CREATE TABLE notification (
 
 
 --@block
----- TESTING DATA ----
-
-
---@block
-INSERT INTO users (email, username, password_hash, first_name, last_name, phone_number, role)
-VALUES
-('admin@example.com', 'admin', 'hashed_password_here', 'Admin', 'User', '1234567890', 'ADMIN'),
-('client1@example.com', 'client1', 'hashed_password_here', 'Alice', 'Smith', '1112223333', 'CLIENT'),
-('deliverer1@example.com', 'deliverer1', 'hashed_password_here', 'Bob', 'Johnson', '4445556666', 'DELIVERER');
-
---@block
-SELECT * FROM users;
-
-
---@block
-INSERT INTO package 
-(id_client_source, id_client_destination, vehicle_type_needed, address_source, address_destination, weight, price)
-VALUES
-(17, 18, 'CAR', 'A', 'B', 1.0, 20.0);
-
-
---@block
-INSERT INTO users (email, username, password_hash, first_name, last_name, phone_number, role)
-VALUES ('c1@mail.com', 'client1', 'pass', 'John', 'Doe', '123456', 'CLIENT');
---@block
-INSERT INTO client (id, address) VALUES (LAST_INSERT_ID(), '123 Main St');
-
---@block
-INSERT INTO users (email, username, password_hash, first_name, last_name, phone_number, role)
-VALUES ('c2@mail.com', 'client2', 'pass', 'Jane', 'Doe', '789123', 'CLIENT');
---@block
-INSERT INTO client (id, address)
-VALUES (LAST_INSERT_ID(), 'Address 2');
-
---@block
-DELETE FROM users WHERE username = 'client1';
-DELETE FROM users WHERE username = 'client2';
-
---@block
 SELECT * FROM users;
 SELECT * FROM client;
 SELECT * FROM deliverer;
-
---@block
 SELECT * FROM package;
-
-
---@block
-INSERT INTO deliverer (id, vehicle_type, is_available)
-VALUES (3, 'BIKE', TRUE);
---@block
-SELECT * FROM package;
-
-
---@block
-ALTER TABLE affectation 
-MODIFY COLUMN status ENUM('PENDING', 'ACCEPTED', 'REJECTED', 'COMPLETED') NOT NULL;
-
---@block add column max_weight to deliverer
-ALTER TABLE deliverer 
-ADD COLUMN max_weight FLOAT NOT NULL;
-
-
---@block 
-SELECT * FROM deliverer;
+SELECT * FROM affectation;
+SELECT * FROM notification;
