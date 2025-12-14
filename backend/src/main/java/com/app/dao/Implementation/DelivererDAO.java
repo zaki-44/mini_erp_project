@@ -16,8 +16,8 @@ public class DelivererDAO implements DAO<Deliverer>{
         // Add to deliverer and users table
         String toUser = "INSERT INTO users (email, username, password_hash, first_name, last_name, phone_number, role) "
                    + "VALUES (?, ?, ?, ?, ?, ?, ?)";
-        String toDeliverer = "INSERT INTO deliverer (id, vehicle_type, is_available, max_weight) "
-                   + "VALUES (?, ?, ?, ?)";
+        String toDeliverer = "INSERT INTO deliverer (id, vehicle_type, is_available, max_weight , wilaya) "
+                   + "VALUES (?, ?, ?, ? , ?)";
         Connection conn = null;
         try {
             conn = Database.getConnection();
@@ -48,6 +48,7 @@ public class DelivererDAO implements DAO<Deliverer>{
             delivererStmt.setString(2, deliverer.getVehicleType().name());
             delivererStmt.setBoolean(3, deliverer.isAvailable());
             delivererStmt.setDouble(4, deliverer.getMaxWeight());
+            delivererStmt.setString(5, deliverer.getWilaya());
             delivererStmt.executeUpdate();
             delivererStmt.close();
 
@@ -79,7 +80,7 @@ public class DelivererDAO implements DAO<Deliverer>{
     public void update(Deliverer deliverer) throws SQLException {
         String updateUser = "UPDATE users SET email=?, username=?, password_hash=?, first_name=?, last_name=?, phone_number=?, role=?"
                    + "WHERE id=?";
-        String updateDeliverer = "UPDATE deliverer SET vehicle_type=?, is_available=?, max_weight=? WHERE id=?";
+        String updateDeliverer = "UPDATE deliverer SET vehicle_type=?, is_available=?, max_weight=? , wilaya=? WHERE id=?";
         Connection conn = null;
         try {
             conn = Database.getConnection();
@@ -92,7 +93,6 @@ public class DelivererDAO implements DAO<Deliverer>{
             userStmt.setString(5, deliverer.getLastName());
             userStmt.setString(6, deliverer.getPhoneNumber());
             userStmt.setString(7, "DELIVERER");
-
             userStmt.setInt(8, deliverer.getId());
             
             userStmt.executeUpdate();
@@ -102,8 +102,9 @@ public class DelivererDAO implements DAO<Deliverer>{
             delivererStmt.setString(1, deliverer.getVehicleType().name());
             delivererStmt.setBoolean(2, deliverer.isAvailable());
             delivererStmt.setDouble(3, deliverer.getMaxWeight());
-
-            delivererStmt.setInt(4, deliverer.getId());
+            delivererStmt.setString(4, deliverer.getWilaya());
+            
+            delivererStmt.setInt(5, deliverer.getId());
             delivererStmt.executeUpdate();
             delivererStmt.close();
             conn.commit(); // Commit transaction
@@ -175,7 +176,7 @@ public class DelivererDAO implements DAO<Deliverer>{
     }
     @Override
     public Deliverer findById(int id) throws SQLException {
-        String sql = "SELECT u.id, u.email, u.username, u.password_hash, u.first_name, u.last_name, u.phone_number, d.vehicle_type , d.is_available , d.max_weight "
+        String sql = "SELECT u.id, u.email, u.username, u.password_hash, u.first_name, u.last_name, u.phone_number, d.vehicle_type , d.is_available , d.max_weight , d.wilaya "
                    + "FROM users u JOIN deliverer d ON u.id = d.id WHERE u.id=?";
         Deliverer deliverer = null;
         try (Connection conn = Database.getConnection();
@@ -197,7 +198,7 @@ public class DelivererDAO implements DAO<Deliverer>{
     }
     @Override
     public List<Deliverer> findAll() throws SQLException {
-        String sql = "SELECT u.id, u.email, u.username, u.password_hash, u.first_name, u.last_name, u.phone_number, d.vehicle_type , d.is_available, d.max_weight "
+        String sql = "SELECT u.id, u.email, u.username, u.password_hash, u.first_name, u.last_name, u.phone_number, d.vehicle_type , d.is_available, d.max_weight , d.wilaya "
                    + "FROM users u JOIN deliverer d ON u.id = d.id";
         List<Deliverer> deliverers = new java.util.ArrayList<>();
         try (Connection conn = Database.getConnection();
@@ -229,6 +230,7 @@ public class DelivererDAO implements DAO<Deliverer>{
             deliverer.setVehicleType(VehicleType.valueOf(rs.getString("vehicle_type")));
             deliverer.setAvailable(rs.getBoolean("is_available"));
             deliverer.setMaxWeight(rs.getDouble("max_weight"));
+            deliverer.setWilaya(rs.getString("wilaya"));
             return deliverer;
         }
         catch(SQLException e){
@@ -238,7 +240,7 @@ public class DelivererDAO implements DAO<Deliverer>{
     }
 
     public List<Deliverer> findAllAvailable() throws SQLException {
-        String sql = "SELECT u.id, u.email, u.username, u.password_hash, u.first_name, u.last_name, u.phone_number, d.vehicle_type , d.is_available , d.max_weight "
+        String sql = "SELECT u.id, u.email, u.username, u.password_hash, u.first_name, u.last_name, u.phone_number, d.vehicle_type , d.is_available , d.max_weight , d.wilaya "
                    + "FROM users u JOIN deliverer d ON u.id = d.id WHERE d.is_available = TRUE";
         List<Deliverer> deliverers = new java.util.ArrayList<>();
         try (Connection conn = Database.getConnection();
@@ -258,7 +260,7 @@ public class DelivererDAO implements DAO<Deliverer>{
     }
 
     public List<Deliverer> findByAffectation(Affectation aff) throws SQLException {
-        String sql = "SELECT u.id, u.email, u.username, u.password_hash, u.first_name, u.last_name, u.phone_number, d.vehicle_type , d.is_available , d.max_weight "
+        String sql = "SELECT u.id, u.email, u.username, u.password_hash, u.first_name, u.last_name, u.phone_number, d.vehicle_type , d.is_available , d.max_weight , d.wilaya "
                    + "FROM users u JOIN deliverer d ON u.id = d.id "
                    + "JOIN affectation a ON d.id = a.id_deliverer WHERE a.id_affectation=?";
         List<Deliverer> deliverers = new java.util.ArrayList<>();
