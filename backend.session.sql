@@ -81,5 +81,12 @@ SELECT * FROM affectation;
 SELECT * FROM notification;
 
 --@block
-ALTER TABLE client ADD COLUMN wilaya VARCHAR(100);
-ALTER TABLE deliverer ADD COLUMN wilaya VARCHAR(100);
+DROP TABLE notification;
+DROP TABLE affectation;
+DROP TABLE package;
+DROP TABLE client;
+DROP TABLE deliverer;
+
+
+--@block
+SELECT * from affectation;
