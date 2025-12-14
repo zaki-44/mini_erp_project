@@ -7,13 +7,15 @@ public class Deliverer extends User {
     private VehicleType vehicleType;   // e.g., bike, car, truck
     private boolean available;    // if the deliverer is available for orders
     private double maxWeight; // maximum weight the deliverer can carry
+    private String wilaya;
     public Deliverer() {}
 
     public Deliverer(int id, String email, String username, String passwordHash,
-                     String firstName, String lastName, String phoneNumber, Role role,
+                     String firstName, String lastName, String phoneNumber, String wilaya, Role role,
                      VehicleType vehicleType, boolean available, double maxWeight) {
         super(id, email, username, passwordHash, firstName, lastName, phoneNumber, role);
         this.vehicleType = vehicleType;
+        this.wilaya = wilaya;
         this.available = available;
         this.maxWeight = maxWeight;
     }
@@ -27,6 +29,9 @@ public class Deliverer extends User {
 
     public boolean isAvailable() { return available; }
     public void setAvailable(boolean available) { this.available = available; }
+
+    public String getWilaya() { return wilaya; }
+    public void setWilaya(String wilaya) { this.wilaya = wilaya; }
     @Override
     public void print(){
         super.print();

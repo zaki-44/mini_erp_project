@@ -18,7 +18,8 @@ public class Servlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         DeliveryAssignmentService assignmentService = new DeliveryAssignmentService();
-        Deliverer deliverer = assignmentService.autoAssignPackage(1);
+        Integer id = Integer.parseInt(req.getParameter("id"));
+        Deliverer deliverer = assignmentService.autoAssignPackage(id);
         resp.setContentType("application/json");
         PrintWriter out = resp.getWriter();
         Gson gson = new Gson();

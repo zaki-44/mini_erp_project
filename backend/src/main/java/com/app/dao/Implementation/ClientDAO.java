@@ -17,7 +17,7 @@ public class ClientDAO implements DAO<Client> {
         String insertUser = "INSERT INTO users (email, username, password_hash, first_name, last_name, phone_number, role) "
                 + "VALUES (?, ?, ?, ?, ?, ?, ?)";
 
-        String insertClient = "INSERT INTO client (id, address) VALUES (?, ?)";
+        String insertClient = "INSERT INTO client (id, address, wilaya) VALUES (?, ?, ?)";
         Connection conn = null;
         try {
             conn = Database.getConnection();
@@ -48,6 +48,7 @@ public class ClientDAO implements DAO<Client> {
             PreparedStatement clientStmt = conn.prepareStatement(insertClient);
             clientStmt.setInt(1, userId);
             clientStmt.setString(2, client.getAddress());
+            clientStmt.setString(3, client.getWilaya());
             clientStmt.executeUpdate();
             clientStmt.close();
             conn.commit();
@@ -80,7 +81,7 @@ public class ClientDAO implements DAO<Client> {
         String updateUser = "UPDATE users SET email=?, username=?, password_hash=?, first_name=?, last_name=?, phone_number=?, role=? "
                 + "WHERE id=?";
 
-        String updateClient = "UPDATE client SET address=? WHERE id=?";
+        String updateClient = "UPDATE client SET address=?, wilaya=? WHERE id=?";
         Connection conn = null;
         try {
             conn = Database.getConnection();
@@ -100,7 +101,9 @@ public class ClientDAO implements DAO<Client> {
 
             PreparedStatement clientStmt = conn.prepareStatement(updateClient);
             clientStmt.setString(1, client.getAddress());
-            clientStmt.setInt(2, client.getId());
+            clientStmt.setString(2, client.getWilaya());
+            clientStmt.setInt(3, client.getId());
+            
             clientStmt.executeUpdate();
             clientStmt.close();
             conn.commit();
@@ -175,7 +178,7 @@ public class ClientDAO implements DAO<Client> {
 
     @Override
     public Client findById(int id) throws SQLException {
-        String sql = "SELECT u.id, u.email, u.username, u.password_hash, u.first_name, u.last_name, u.phone_number, c.address "
+        String sql = "SELECT u.id, u.email, u.username, u.password_hash, u.first_name, u.last_name, u.phone_number, c.address , c.wilaya "
                    + "FROM users u JOIN client c ON u.id = c.id WHERE u.id=?";
 
         Client client = null;
@@ -187,15 +190,7 @@ public class ClientDAO implements DAO<Client> {
 
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
-                    client = new Client();
-                    client.setId(rs.getInt("id"));
-                    client.setEmail(rs.getString("email"));
-                    client.setUsername(rs.getString("username"));
-                    client.setPasswordHash(rs.getString("password_hash"));
-                    client.setFirstName(rs.getString("first_name"));
-                    client.setLastName(rs.getString("last_name"));
-                    client.setPhoneNumber(rs.getString("phone_number"));
-                    client.setAddress(rs.getString("address"));
+                    client = mapResultSetToClient(rs);
                 }
             }
 
@@ -209,7 +204,7 @@ public class ClientDAO implements DAO<Client> {
 
     @Override
     public List<Client> findAll() throws SQLException {
-        String sql = "SELECT u.id, u.email, u.username, u.password_hash, u.first_name, u.last_name, u.phone_number, c.address "
+        String sql = "SELECT u.id, u.email, u.username, u.password_hash, u.first_name, u.last_name, u.phone_number, c.address , c.wilaya "
                    + "FROM users u JOIN client c ON u.id = c.id";
 
         List<Client> clients = new ArrayList<>();
@@ -219,15 +214,7 @@ public class ClientDAO implements DAO<Client> {
              ResultSet rs = stmt.executeQuery()) {
 
             while (rs.next()) {
-                Client client = new Client();
-                client.setId(rs.getInt("id"));
-                client.setEmail(rs.getString("email"));
-                client.setUsername(rs.getString("username"));
-                client.setPasswordHash(rs.getString("password_hash"));
-                client.setFirstName(rs.getString("first_name"));
-                client.setLastName(rs.getString("last_name"));
-                client.setPhoneNumber(rs.getString("phone_number"));
-                client.setAddress(rs.getString("address"));
+                Client client = mapResultSetToClient(rs);
                 clients.add(client);
             }
 
@@ -237,5 +224,18 @@ public class ClientDAO implements DAO<Client> {
         }
 
         return clients;
+    }
+    private Client mapResultSetToClient(ResultSet rs) throws SQLException {
+        Client client = new Client();
+        client.setId(rs.getInt("id"));
+        client.setEmail(rs.getString("email"));
+        client.setUsername(rs.getString("username"));
+        client.setPasswordHash(rs.getString("password_hash"));
+        client.setFirstName(rs.getString("first_name"));
+        client.setLastName(rs.getString("last_name"));
+        client.setPhoneNumber(rs.getString("phone_number"));
+        client.setAddress(rs.getString("address"));
+        client.setWilaya(rs.getString("wilaya"));
+        return client;
     }
 }

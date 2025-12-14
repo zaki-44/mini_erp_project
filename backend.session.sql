@@ -14,6 +14,7 @@ CREATE TABLE `users` (
 CREATE TABLE client (
     id INT PRIMARY KEY,
     address VARCHAR(255),
+    wilaya VARCHAR(100),
     FOREIGN KEY (id) REFERENCES users(id) ON DELETE CASCADE
 );
 
@@ -22,6 +23,7 @@ CREATE TABLE deliverer (
     id INT PRIMARY KEY,
     vehicle_type ENUM('CAR', 'BIKE', 'TRUCK') NOT NULL,
     max_weight FLOAT NOT NULL,
+    wilaya VARCHAR(100),
     is_available BOOLEAN DEFAULT TRUE,
     FOREIGN KEY (id) REFERENCES users(id) ON DELETE CASCADE
 );
@@ -77,3 +79,7 @@ SELECT * FROM deliverer;
 SELECT * FROM package;
 SELECT * FROM affectation;
 SELECT * FROM notification;
+
+--@block
+ALTER TABLE client ADD COLUMN wilaya VARCHAR(100);
+ALTER TABLE deliverer ADD COLUMN wilaya VARCHAR(100);
