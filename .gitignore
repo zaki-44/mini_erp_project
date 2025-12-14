@@ -50,3 +50,6 @@ frontend/.env.production.local
 
 # Misc
 frontend/.DS_Store
+
+
+backend.session.sql
