@@ -9,8 +9,8 @@ backend/target/
 .vscode
 .mvn
 /backend/.env
-/backend/webapp/WEB-INF/lib
-/backend/webapp/WEB-INF/classes
+/backend/srs/main/webapp/WEB-INF/lib
+/backend/srs/main/webapp/WEB-INF/classes
 
 # Eclipse / IntelliJ / VSCode project files
 *.iml
