@@ -189,7 +189,8 @@ public class DeliveryAssignmentService {
 
                 return bestDeliverer;
             } else {
-                throw new IllegalStateException("No available deliverers found for package ID: " + packageId);
+                System.out.println("No available deliverers found for package ID: " + packageId);
+                return null;
             }
         }
         catch(Exception e){
