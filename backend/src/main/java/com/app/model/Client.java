@@ -1,28 +1,122 @@
 package com.app.model;
 
 import com.app.model.Enums.Role;
+import java.util.List;
 
 public class Client extends User {
-    private String address;
-    private String wilaya;
 
+    // Basic address info
+    private String address;
+    private String city;
+    private int postalCode;
+
+    // Verification status
+    private boolean phoneVerified;
+    private boolean emailVerified;
+
+    // Relationships (packages)
+    private List<Package> sentPackages;
+    private List<Package> receivedPackages;
+
+    // Default constructor (important for frameworks)
     public Client() {}
 
-    public Client(int id, String email, String username, String passwordHash,
-                  String firstName, String lastName, String phoneNumber,String wilaya , Role role,
-                  String address, boolean active) {
+    // Full constructor
+    public Client(
+            int id,
+            String email,
+            String username,
+            String passwordHash,
+            String firstName,
+            String lastName,
+            String phoneNumber,
+            Role role,
+            String address,
+            String city,
+            int postalCode,
+            boolean phoneVerified,
+            boolean emailVerified) {
         super(id, email, username, passwordHash, firstName, lastName, phoneNumber, role);
         this.address = address;
-        this.wilaya = wilaya;
+        this.city = city;
+        this.postalCode = postalCode;
+        this.phoneVerified = phoneVerified;
+        this.emailVerified = emailVerified;
+      
+        
     }
 
-    public String getAddress() { return address; }
-    public void setAddress(String address) { this.address = address; }
-    public String getWilaya() { return wilaya; }
-    public void setWilaya(String wilaya) { this.wilaya = wilaya; }
+    // Getters & Setters
+
+    public String getAddress() {
+        return address;
+    }
+
+    public void setAddress(String address) {
+        this.address = address;
+    }
+
+    public String getCity() {
+        return city;
+    }
+
+    public void setCity(String city) {
+        this.city = city;
+    }
+
+    public int getPostalCode() {
+        return postalCode;
+    }
+
+    public void setPostalCode(int postalCode) {
+        this.postalCode = postalCode;
+    }
+
+    public boolean isPhoneVerified() {
+        return phoneVerified;
+    }
+
+    public void setPhoneVerified(boolean phoneVerified) {
+        this.phoneVerified = phoneVerified;
+    }
+
+    public boolean isEmailVerified() {
+        return emailVerified;
+    }
+
+    public void setEmailVerified(boolean emailVerified) {
+        this.emailVerified = emailVerified;
+    }
+
+
+    
+ 
+    public List<Package> getSentPackages() {
+        return sentPackages;
+    }
+
+    public void setSentPackages(List<Package> sentPackages) {
+        this.sentPackages = sentPackages;
+    }
+
+    public List<Package> getReceivedPackages() {
+        return receivedPackages;
+    }
+
+    public void setReceivedPackages(List<Package> receivedPackages) {
+        this.receivedPackages = receivedPackages;
+    }
+
+    // Override print method
     @Override
-    public void print(){
+    public void print() {
         super.print();
-        System.out.println("Client [address=" + address + "]");
+        System.out.println(
+            "Client [address=" + address +
+            ", city=" + city +
+            ", postalCode=" + postalCode +
+            
+            "]"
+        );
     }
 }

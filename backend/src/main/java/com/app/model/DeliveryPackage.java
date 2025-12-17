@@ -16,14 +16,14 @@ public class DeliveryPackage {
     private String description;
     private PackageStatus status;
     private Timestamp createdAt;
-
+    private String deliveryInstructions;
     public DeliveryPackage() {
         this.status = PackageStatus.CREATED;
     }
 
     public DeliveryPackage(int idPackage, int idClientSource, int idClientDestination,
                            VehicleType vehicleTypeNeeded, String addressSource, String addressDestination,
-                           double weight, double price, String dimensions, String description,
+                           double weight, double price, String dimensions, String description,String deliveryInstructions,
                            PackageStatus status, Timestamp createdAt) {
         this.idPackage = idPackage;
         this.idClientSource = idClientSource;
@@ -37,6 +37,7 @@ public class DeliveryPackage {
         this.description = description;
         this.status = status != null ? status : PackageStatus.CREATED;
         this.createdAt = createdAt;
+        this.deliveryInstructions = deliveryInstructions;
     }
 
     // Getters and Setters
@@ -72,6 +73,10 @@ public class DeliveryPackage {
 
     public PackageStatus getStatus() { return status; }
     public void setStatus(PackageStatus status) { this.status = status; }
+
+    public String getDeliveryInstructions() { return deliveryInstructions; }
+    public void setDeliveryInstructions(String deliveryInstructions) { this.deliveryInstructions = deliveryInstructions; }
+
 
     public Timestamp getCreatedAt() { return createdAt; }
     public void setCreatedAt(Timestamp createdAt) { this.createdAt = createdAt; }

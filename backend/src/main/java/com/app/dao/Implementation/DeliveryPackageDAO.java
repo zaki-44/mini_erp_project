@@ -15,8 +15,8 @@ public class DeliveryPackageDAO implements DAO<DeliveryPackage> {
     @Override
     public void insert(DeliveryPackage pkg) throws SQLException {
         String sql = "INSERT INTO package (id_client_source, id_client_destination, vehicle_type_needed, " +
-                     "address_source, address_destination, weight, price, dimensions, description, status, created_at) " +
-                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                     "address_source, address_destination, weight, price, dimensions, description, delivery_instructions, status, created_at) " +
+                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? , ?)";
 
         try (Connection conn = Database.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
@@ -34,8 +34,9 @@ public class DeliveryPackageDAO implements DAO<DeliveryPackage> {
             stmt.setDouble(7, pkg.getPrice());
             stmt.setString(8, pkg.getDimensions());
             stmt.setString(9, pkg.getDescription());
-            stmt.setString(10, pkg.getStatus() != null ? pkg.getStatus().name() : PackageStatus.CREATED.name());
-            stmt.setTimestamp(11, pkg.getCreatedAt() != null ? pkg.getCreatedAt() : new Timestamp(System.currentTimeMillis()));
+            stmt.setString(10, pkg.getDeliveryInstructions());
+            stmt.setString(11, pkg.getStatus() != null ? pkg.getStatus().name() : PackageStatus.CREATED.name());
+            stmt.setTimestamp(12, pkg.getCreatedAt() != null ? pkg.getCreatedAt() : new Timestamp(System.currentTimeMillis()));
 
             stmt.executeUpdate();
 
@@ -50,7 +51,7 @@ public class DeliveryPackageDAO implements DAO<DeliveryPackage> {
     @Override
     public void update(DeliveryPackage pkg) throws SQLException {
         String sql = "UPDATE package SET id_client_source=?, id_client_destination=?, vehicle_type_needed=?, " +
-                     "address_source=?, address_destination=?, weight=?, price=?, dimensions=?, description=?, " +
+                     "address_source=?, address_destination=?, weight=?, price=?, dimensions=?, description=?, delivery_instructions=?, " +
                      "status=? WHERE id_package=?";
 
         try (Connection conn = Database.getConnection();
@@ -69,8 +70,10 @@ public class DeliveryPackageDAO implements DAO<DeliveryPackage> {
             stmt.setDouble(7, pkg.getPrice());
             stmt.setString(8, pkg.getDimensions());
             stmt.setString(9, pkg.getDescription());
-            stmt.setString(10, pkg.getStatus() != null ? pkg.getStatus().name() : PackageStatus.CREATED.name());
-            stmt.setInt(11, pkg.getIdPackage());
+            stmt.setString(10, pkg.getDeliveryInstructions());
+            stmt.setString(11, pkg.getStatus() != null ? pkg.getStatus().name() : PackageStatus.CREATED.name());
+            stmt.setInt(12, pkg.getIdPackage());
+            
 
             stmt.executeUpdate();
         }
@@ -141,6 +144,7 @@ public class DeliveryPackageDAO implements DAO<DeliveryPackage> {
         pkg.setPrice(rs.getDouble("price"));
         pkg.setDimensions(rs.getString("dimensions"));
         pkg.setDescription(rs.getString("description"));
+        pkg.setDeliveryInstructions(rs.getString("delivery_instructions"));
 
         String status = rs.getString("status");
         if (status != null) pkg.setStatus(PackageStatus.valueOf(status));

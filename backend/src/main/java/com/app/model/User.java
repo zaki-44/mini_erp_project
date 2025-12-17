@@ -10,7 +10,7 @@ public class User {
     private String firstName;
     private String lastName;
     private String phoneNumber;
-    private Role role; //
+    private Role role;
 
     // Constructors
     public User() {}

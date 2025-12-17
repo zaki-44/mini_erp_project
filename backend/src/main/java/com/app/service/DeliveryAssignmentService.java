@@ -114,8 +114,8 @@ public class DeliveryAssignmentService {
             return 0.0;
         }
     }
-    private boolean isSameWilaya(Deliverer d, Client c){
-        return d.getWilaya().equals(c.getWilaya());
+    private boolean isSameCity(Deliverer d, Client c){
+        return d.getCity().equals(c.getCity());
     }
 
     public double calculateScore(Deliverer deliverer, DeliveryPackage pkg , List<Affectation> affs) {
@@ -127,7 +127,7 @@ public class DeliveryAssignmentService {
             if (weightScore < -100.0) return Double.NEGATIVE_INFINITY;
             double score = 0.0;
             Client sourceClient = affectationDAO.getSourceClient(pkg);
-            if(!isSameWilaya(deliverer, sourceClient)){
+            if(!isSameCity(deliverer, sourceClient)){
                 return Double.NEGATIVE_INFINITY;
             }
             score += vehicleScore;

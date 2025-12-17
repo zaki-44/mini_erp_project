@@ -160,7 +160,7 @@ public class AffectationDAO implements DAO<Affectation> {
         return a;
     }
     public Client getSourceClient(DeliveryPackage pkg){
-        String sql = "SELECT u.id, u.email, u.username, u.password_hash, u.first_name, u.last_name, u.phone_number, c.address , c.wilaya "
+        String sql = "SELECT u.id, u.email, u.username, u.password_hash, u.first_name, u.last_name, u.phone_number, c.address , c.city, c.postal_code , c.phone_verified , c.email_verified "
                    + "FROM users u JOIN client c ON u.id = c.id WHERE c.id = ?";
         Client client = null;
         try (Connection conn = Database.getConnection();

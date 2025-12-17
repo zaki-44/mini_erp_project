@@ -13,7 +13,10 @@ CREATE TABLE `users` (
 CREATE TABLE client (
     id INT PRIMARY KEY,
     address VARCHAR(255),
-    wilaya VARCHAR(100),
+    city VARCHAR(100),
+    postal_code INT,
+    phone_verified BOOLEAN DEFAULT FALSE,
+    email_verified BOOLEAN DEFAULT FALSE,
     FOREIGN KEY (id) REFERENCES users(id) ON DELETE CASCADE
 );
 
@@ -22,7 +25,7 @@ CREATE TABLE deliverer (
     id INT PRIMARY KEY,
     vehicle_type ENUM('CAR', 'BIKE', 'TRUCK') NOT NULL,
     max_weight FLOAT NOT NULL,
-    wilaya VARCHAR(100),
+    city VARCHAR(100),
     is_available BOOLEAN DEFAULT TRUE,
     FOREIGN KEY (id) REFERENCES users(id) ON DELETE CASCADE
 );
@@ -38,6 +41,7 @@ CREATE TABLE package (
     price FLOAT,
     dimensions VARCHAR(100),
     description TEXT,
+    delivery_instructions TEXT,
     status ENUM('CREATED', 'ASSIGNED', 'PICKEDUP', 'DELIVERED', 'CANCELED') DEFAULT 'CREATED',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
