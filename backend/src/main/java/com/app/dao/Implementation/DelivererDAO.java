@@ -150,7 +150,7 @@ public class DelivererDAO implements DAO<Deliverer>{
             userStmt.setInt(1, id);
             userStmt.executeUpdate();
             userStmt.close();
-            conn.commit(); // Commit transaction
+            conn.commit();
         }
         catch(SQLException e){
             if (conn != null) {
