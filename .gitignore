@@ -6,7 +6,7 @@
 
 # Maven target folder
 backend/target/
-.vscode
+.vscode/
 .mvn
 /backend/.env
 /backend/src/main/webapp/WEB-INF/lib
