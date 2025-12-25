@@ -1,16 +1,21 @@
 package com.app.controller;
 
-import jakarta.servlet.*;
-import jakarta.servlet.http.*;
-import jakarta.servlet.annotation.*;
-import java.io.*;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.List;
-import com.google.gson.Gson;
+
+import com.app.dao.Implementation.DeliveryPackageDAO;
+import com.app.model.Deliverer;
+import com.app.model.DeliveryPackage;
 import com.app.model.Enums.PackageStatus;
-import com.app.model.Enums.VehicleType;
 import com.app.service.DeliveryAssignmentService;
-import com.app.dao.Implementation.*;
-import com.app.model.*;
+import com.google.gson.Gson;
+
+import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.WebServlet;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 
 @WebServlet("/api/database/test")

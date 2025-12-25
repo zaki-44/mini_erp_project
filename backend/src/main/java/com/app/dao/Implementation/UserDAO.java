@@ -111,6 +111,33 @@ public class UserDAO implements DAO<User>{
         }
         return list;
     }
+    public static User getUserByEmail(String email) throws SQLException {
+        String sql = "SELECT * FROM User WHERE email=?";
+        try (Connection conn = Database.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, email);
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                User user = new User(                       
+                        rs.getString("email")
+                );
+                return user;
+            }
+        }
+        return null;
+    }
+    public boolean userExists(String email) {
+        String sql = "SELECT id FROM User WHERE email = ?";
+        try (Connection conn = Database.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, email);
+            ResultSet rs = stmt.executeQuery();
+            return rs.next();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
 
 
 
