@@ -7,7 +7,6 @@ import java.io.*;
 import java.util.List;
 import com.google.gson.Gson;
 import com.app.model.Enums.PackageStatus;
-import com.app.model.Enums.VehicleType;
 import com.app.service.DeliveryAssignmentService;
 import com.app.dao.Implementation.*;
 import com.app.model.*;

@@ -127,8 +127,8 @@ public class DeliveryAssignmentService {
             if (weightScore < -100.0) return Double.NEGATIVE_INFINITY;
             double score = 0.0;
             Client sourceClient = affectationDAO.getSourceClient(pkg);
-            if(!isSameCity(deliverer, sourceClient)){
-                return Double.NEGATIVE_INFINITY;
+            if(!isSameCity(deliverer, sourceClient)){ 
+                return Double.NEGATIVE_INFINITY; 
             }
             score += vehicleScore;
             score += weightScore;

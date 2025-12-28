@@ -111,7 +111,20 @@ public class UserDAO implements DAO<User>{
         }
         return list;
     }
+    public Role getRoleById(int id) throws SQLException {
+        String sql = "SELECT role FROM users WHERE id=?";
+        try (Connection conn = Database.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
 
+            stmt.setInt(1, id);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return Role.valueOf(rs.getString("role"));
+                }
+            }
+        }
+        return null;
+    }
 
 
 }

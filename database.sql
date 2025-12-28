@@ -15,7 +15,6 @@ CREATE TABLE client (
     address VARCHAR(255),
     city VARCHAR(100),
     postal_code INT,
-    phone_verified BOOLEAN DEFAULT FALSE,
     email_verified BOOLEAN DEFAULT FALSE,
     FOREIGN KEY (id) REFERENCES users(id) ON DELETE CASCADE
 );
@@ -25,6 +24,8 @@ CREATE TABLE deliverer (
     id INT PRIMARY KEY,
     vehicle_type ENUM('CAR', 'BIKE', 'TRUCK') NOT NULL,
     max_weight FLOAT NOT NULL,
+    current_load FLOAT DEFAULT 0,
+    serial_number VARCHAR(100) UNIQUE,
     city VARCHAR(100),
     is_available BOOLEAN DEFAULT TRUE,
     FOREIGN KEY (id) REFERENCES users(id) ON DELETE CASCADE
@@ -53,7 +54,7 @@ CREATE TABLE affectation (
     id_affectation INT AUTO_INCREMENT PRIMARY KEY,
     id_deliverer INT NOT NULL,
     id_package INT NOT NULL,
-    status ENUM('PENDING', 'ACCEPTED', 'REJECTED', 'COMPLETED') NOT NULL,
+    status ENUM('PENDING', 'ACCEPTED','ONROUTE', 'REJECTED', 'COMPLETED') NOT NULL,
     assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
     FOREIGN KEY (id_deliverer) REFERENCES deliverer(id),
