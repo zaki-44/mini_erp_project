@@ -13,7 +13,7 @@ import com.app.model.*;
 
 
 @WebServlet("/api/database/test")
-public class Servlet extends HttpServlet {
+public class TestServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         DeliveryAssignmentService assignmentService = new DeliveryAssignmentService();

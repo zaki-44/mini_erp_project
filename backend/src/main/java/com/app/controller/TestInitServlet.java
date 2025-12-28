@@ -9,7 +9,7 @@ import jakarta.servlet.http.*;
 import java.sql.Timestamp;
 
 @WebServlet("/api/database/init")
-public class InitServlet extends HttpServlet {
+public class TestInitServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) {
         // Initialize DAOs

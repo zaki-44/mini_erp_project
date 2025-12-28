@@ -6,7 +6,7 @@ import java.io.*;
 import com.app.util.EmailService;
 
 @WebServlet("/api/email/send")
-public class ServletEmail extends HttpServlet{
+public class TestServletEmail extends HttpServlet{
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         resp.setContentType("text/plain");
