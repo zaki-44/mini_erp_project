@@ -182,7 +182,9 @@ public class DeliveryAssignmentService {
                                                 AffectationStatus.PENDING, new Timestamp(System.currentTimeMillis()));
                 
                 pkg.setStatus(PackageStatus.ASSIGNED);
-                
+                //TODO :
+                // Create other insert and update operations that have a conn parameter then do autocommit off
+                // conn.setAutoCommit(false); and pass the connection
                 affectationDAO.insert(aff);
                 delivererDAO.update(bestDeliverer); 
                 packageDAO.update(pkg);
