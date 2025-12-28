@@ -32,7 +32,9 @@ public class Servlet extends HttpServlet {
         Gson gson = new Gson();
         String json = gson.toJson(deliverer);
         String pkgJson = gson.toJson(pkg);
+        out.println("Deliverer assigned:");
         out.println(json);
+        out.println("Package after assignment:");
         out.println(pkgJson);
     }
     @Override

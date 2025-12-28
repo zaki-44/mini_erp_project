@@ -11,7 +11,6 @@ public class Client extends User {
     private int postalCode;
 
     // Verification status
-    private boolean phoneVerified;
     private boolean emailVerified;
 
     // Relationships (packages)
@@ -40,7 +39,6 @@ public class Client extends User {
         this.address = address;
         this.city = city;
         this.postalCode = postalCode;
-        this.phoneVerified = phoneVerified;
         this.emailVerified = emailVerified;
       
         
@@ -70,14 +68,6 @@ public class Client extends User {
 
     public void setPostalCode(int postalCode) {
         this.postalCode = postalCode;
-    }
-
-    public boolean isPhoneVerified() {
-        return phoneVerified;
-    }
-
-    public void setPhoneVerified(boolean phoneVerified) {
-        this.phoneVerified = phoneVerified;
     }
 
     public boolean isEmailVerified() {

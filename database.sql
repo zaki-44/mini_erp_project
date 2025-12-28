@@ -27,6 +27,7 @@ CREATE TABLE deliverer (
     current_load FLOAT DEFAULT 0,
     serial_number VARCHAR(100) UNIQUE,
     city VARCHAR(100),
+    rate FLOAT DEFAULT 0,
     is_available BOOLEAN DEFAULT TRUE,
     FOREIGN KEY (id) REFERENCES users(id) ON DELETE CASCADE
 );
@@ -46,8 +47,8 @@ CREATE TABLE package (
     status ENUM('CREATED', 'ASSIGNED', 'PICKEDUP', 'DELIVERED', 'CANCELED') DEFAULT 'CREATED',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
-    FOREIGN KEY (id_client_source) REFERENCES client(id),
-    FOREIGN KEY (id_client_destination) REFERENCES client(id)
+    FOREIGN KEY (id_client_source) REFERENCES client(id) ON DELETE CASCADE,
+    FOREIGN KEY (id_client_destination) REFERENCES client(id) ON DELETE SET NULL
 );
 
 CREATE TABLE affectation (
@@ -57,8 +58,8 @@ CREATE TABLE affectation (
     status ENUM('PENDING', 'ACCEPTED','ONROUTE', 'REJECTED', 'COMPLETED') NOT NULL,
     assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
-    FOREIGN KEY (id_deliverer) REFERENCES deliverer(id),
-    FOREIGN KEY (id_package) REFERENCES package(id_package)
+    FOREIGN KEY (id_deliverer) REFERENCES deliverer(id) ON DELETE CASCADE,
+    FOREIGN KEY (id_package) REFERENCES package(id_package) ON DELETE CASCADE
 );
 
 
@@ -71,6 +72,6 @@ CREATE TABLE notification (
     is_read BOOLEAN DEFAULT FALSE,
     date_notif TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
-    FOREIGN KEY (id_package) REFERENCES package(id_package),
-    FOREIGN KEY (id_user_target) REFERENCES users(id)
+    FOREIGN KEY (id_package) REFERENCES package(id_package) ON DELETE CASCADE,
+    FOREIGN KEY (id_user_target) REFERENCES users(id) ON DELETE CASCADE
 );

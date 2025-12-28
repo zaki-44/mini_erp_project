@@ -17,7 +17,7 @@ public class ClientDAO implements DAO<Client> {
         String insertUser = "INSERT INTO users (email, username, password_hash, first_name, last_name, phone_number, role) "
                 + "VALUES (?, ?, ?, ?, ?, ?, ?)";
 
-        String insertClient = "INSERT INTO client (id, address, city, postal_code , phone_verified , email_verified) VALUES (?, ?, ?, ?, ?, ?)";
+        String insertClient = "INSERT INTO client (id, address, city, postal_code , email_verified) VALUES (?, ?, ?, ?, ?)";
         Connection conn = null;
         try {
             conn = Database.getConnection();
@@ -50,8 +50,7 @@ public class ClientDAO implements DAO<Client> {
             clientStmt.setString(2, client.getAddress());
             clientStmt.setString(3, client.getCity());
             clientStmt.setInt(4, client.getPostalCode());
-            clientStmt.setBoolean(5, client.isPhoneVerified());
-            clientStmt.setBoolean(6, client.isEmailVerified());
+            clientStmt.setBoolean(5, client.isEmailVerified());
             clientStmt.executeUpdate();
             clientStmt.close();
             conn.commit();
@@ -84,7 +83,7 @@ public class ClientDAO implements DAO<Client> {
         String updateUser = "UPDATE users SET email=?, username=?, password_hash=?, first_name=?, last_name=?, phone_number=?, role=? "
                 + "WHERE id=?";
 
-        String updateClient = "UPDATE client SET address=?, city=?, postal_code=?, phone_verified=?, email_verified=? WHERE id=?";
+        String updateClient = "UPDATE client SET address=?, city=?, postal_code=?, email_verified=? WHERE id=?";
         Connection conn = null;
         try {
             conn = Database.getConnection();
@@ -106,9 +105,8 @@ public class ClientDAO implements DAO<Client> {
             clientStmt.setString(1, client.getAddress());
             clientStmt.setString(2, client.getCity());
             clientStmt.setInt(3, client.getPostalCode());
-            clientStmt.setBoolean(4, client.isPhoneVerified());
-            clientStmt.setBoolean(5, client.isEmailVerified());
-            clientStmt.setInt(6, client.getId());
+            clientStmt.setBoolean(4, client.isEmailVerified());
+            clientStmt.setInt(5, client.getId());
             
             clientStmt.executeUpdate();
             clientStmt.close();
@@ -184,7 +182,7 @@ public class ClientDAO implements DAO<Client> {
 
     @Override
     public Client findById(int id) throws SQLException {
-        String sql = "SELECT u.id, u.email, u.username, u.password_hash, u.first_name, u.last_name, u.phone_number, c.address , c.city, c.postal_code , c.phone_verified , c.email_verified "
+        String sql = "SELECT u.*, c.* "
                    + "FROM users u JOIN client c ON u.id = c.id WHERE u.id=?";
 
         Client client = null;
@@ -199,7 +197,6 @@ public class ClientDAO implements DAO<Client> {
                     client = mapResultSetToClient(rs);
                 }
             }
-
         } catch (SQLException e) {
             System.out.println("Error finding client by ID: " + e.getMessage());
             throw e;
@@ -210,7 +207,7 @@ public class ClientDAO implements DAO<Client> {
 
     @Override
     public List<Client> findAll() throws SQLException {
-        String sql = "SELECT u.id, u.email, u.username, u.password_hash, u.first_name, u.last_name, u.phone_number, c.address , c.city, c.postal_code , c.phone_verified , c.email_verified "
+        String sql = "SELECT u.*, c.* "
                    + "FROM users u JOIN client c ON u.id = c.id";
 
         List<Client> clients = new ArrayList<>();
@@ -243,7 +240,6 @@ public class ClientDAO implements DAO<Client> {
         client.setAddress(rs.getString("address"));
         client.setCity(rs.getString("city"));
         client.setPostalCode(rs.getInt("postal_code"));
-        client.setPhoneVerified(rs.getBoolean("phone_verified"));
         client.setEmailVerified(rs.getBoolean("email_verified"));
         return client;
     }

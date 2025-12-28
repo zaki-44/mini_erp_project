@@ -8,16 +8,22 @@ public class Deliverer extends User {
     private boolean available;    // if the deliverer is available for orders
     private double maxWeight; // maximum weight the deliverer can carry
     private String city;
+    private double currentLoad;
+    private String serialNumber;
+    private double rate;
     public Deliverer() {}
 
     public Deliverer(int id, String email, String username, String passwordHash,
                      String firstName, String lastName, String phoneNumber, String city, Role role,
-                     VehicleType vehicleType, boolean available, double maxWeight) {
+                     VehicleType vehicleType, boolean available, double maxWeight, double currentLoad, String serialNumber, double rate) {
         super(id, email, username, passwordHash, firstName, lastName, phoneNumber, role);
         this.vehicleType = vehicleType;
         this.city = city;
         this.available = available;
         this.maxWeight = maxWeight;
+        this.currentLoad = currentLoad;
+        this.serialNumber = serialNumber;
+        this.rate = rate;
     }
 
     // Getters and Setters
@@ -32,9 +38,32 @@ public class Deliverer extends User {
 
     public String getCity() { return city; }
     public void setCity(String city) { this.city = city; }
+    public double getCurrentLoad() { return currentLoad; }
+    public void setCurrentLoad(double currentLoad) { this.currentLoad = currentLoad; }
+    public String getSerialNumber() { return serialNumber; }
+    public void setSerialNumber(String serialNumber) { this.serialNumber = serialNumber; }
+    public double getRate() { return rate; }
+    public void setRate(double rate) { this.rate = rate; }
     @Override
     public void print(){
         super.print();
-        System.out.println("Deliverer [vehicleType=" + vehicleType + ", available=" + available + "]");
+        System.out.println("Deliverer [vehicleType=" + vehicleType + ", available=" + available + ", rate=" + rate + ", maxWeight=" + maxWeight + ", currentLoad=" + currentLoad + ", city=" + city + ", serialNumber=" + serialNumber + "]");
+    }
+    public String toString() {
+        return "Deliverer{" +
+                "  id=" + getId() +
+                ", email='" + getEmail() + '\'' +
+                ", username='" + getUsername() + '\'' +
+                ", firstName='" + getFirstName() + '\'' +
+                ", lastName='" + getLastName() + '\'' +
+                ", phoneNumber='" + getPhoneNumber() + '\'' +
+                ", vehicleType=" + vehicleType +
+                ", available=" + available +
+                ", maxWeight=" + maxWeight +
+                ", currentLoad=" + currentLoad +
+                ", city='" + city + '\'' +
+                ", serialNumber='" + serialNumber + '\'' +
+                ", rate=" + rate +
+                '}';
     }
 }
