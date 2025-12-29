@@ -1,51 +1,51 @@
 package com.app.util;
-
 import java.util.Date;
+
+/*
+<dependency>
+            <groupId>com.auth0</groupId>
+            <artifactId>java-jwt</artifactId>
+            <version>4.4.0</version>
+</dependency>
+*/
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
-import com.auth0.jwt.interfaces.DecodedJWT;
-import com.auth0.jwt.interfaces.JWTVerifier;
-import com.app.model.User; 
+import io.github.cdimascio.dotenv.Dotenv;
+public class JWTUtil {
 
-public class JwtUtil {
-
-    private static final String SECRET_KEY = "super_secret_key_must_be_very_long_and_secure_for_production";
+    private static final String SECRET_KEY = Dotenv.load().get("JWT_SECRET");
     private static final Algorithm algorithm = Algorithm.HMAC256(SECRET_KEY);
-    private static final long EXPIRATION_MS = 60 * 60 * 1000 * 10; // 10 hours
+    private static final long EXPIRATION_MS = 60 * 60 * 1000; // 1 hour
 
-    // 1. GENERATE TOKEN (For LoginServlet)
-    public static String generateToken(User user) {
+    public static String generateToken(int userId, String role) {
         return JWT.create()
-                .withSubject(String.valueOf(user.getId()))
-                .withClaim("role", user.getRole())
+                .withSubject(String.valueOf(userId))
+                .withClaim("role", role)
                 .withIssuedAt(new Date())
                 .withExpiresAt(new Date(System.currentTimeMillis() + EXPIRATION_MS))
                 .sign(algorithm);
     }
 
-    // 2. VALIDATE TOKEN (For JwtFilter)
-    public static DecodedJWT validateToken(String token) {
+    public static int getUserId(String token) {
+        return Integer.parseInt(
+            JWT.require(algorithm).build().verify(token).getSubject()
+        );
+    }
+
+    public static String getRole(String token) {
+        return JWT.require(algorithm).build().verify(token)
+                .getClaim("role").asString();
+    }
+    public static boolean isTokenValid(String token) {
         try {
-            JWTVerifier verifier = JWT.require(algorithm).build();
-            return verifier.verify(token); 
+            JWT.require(algorithm).build().verify(token);
+            return true;
         } catch (Exception e) {
-            return null; 
+            return false;
         }
     }
-
-    // 3. GET ROLE (For JwtFilter)
-    public static String getRole(DecodedJWT jwt) {
-        return jwt.getClaim("role").asString();
-    }
-    
-    // 4. GET ID (For JwtFilter)
-    public static int getUserId(DecodedJWT jwt) {
-        return Integer.parseInt(jwt.getSubject());
-    }
-
-    // 5. GENERATE VERIFICATION CODE (For RegisterServlet)
-    // I added this back!
     public static String generateCode(){
+        //6 Digit code
         int code = (int)(Math.random() * 900000) + 100000;
         return String.valueOf(code);
     }
