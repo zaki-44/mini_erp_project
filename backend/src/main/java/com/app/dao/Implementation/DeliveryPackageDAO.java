@@ -1,4 +1,4 @@
-package com.app.dao.Implementation;
+package com.app.dao.implementation;
 
 import com.app.dao.Interface.DAO;
 import com.app.model.DeliveryPackage;

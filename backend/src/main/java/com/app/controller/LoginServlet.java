@@ -1,6 +1,6 @@
 package com.app.controller;
 
-import com.app.dao.Implementation.UserDAO;
+import com.app.dao.implementation.UserDAO;
 import com.app.model.User;
 import com.app.util.JwtUtil;
 import com.google.gson.Gson;
@@ -13,7 +13,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.sql.SQLException;
 
-@WebServlet("/auth/login")
+@WebServlet("/login")
 public class LoginServlet extends HttpServlet {
 
     private UserDAO userDAO;
@@ -60,7 +60,7 @@ public class LoginServlet extends HttpServlet {
                // 1. Generate JWT
 String token = JwtUtil.generateToken(user);
 
-// 2. CREATE COOKIE (The New Part)
+// 2. CREATE COOKIE 
 Cookie jwtCookie = new Cookie("authToken", token);
 jwtCookie.setHttpOnly(true);  // Critical: JS cannot read this
 jwtCookie.setSecure(false);   // Set to TRUE if using HTTPS (Production)

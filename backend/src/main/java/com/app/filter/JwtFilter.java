@@ -1,15 +1,15 @@
 package com.app.filter;
 
 import com.app.util.JwtUtil;
-import io.jsonwebtoken.Claims;
+import com.auth0.jwt.interfaces.DecodedJWT; // Use Auth0 Interface
 import jakarta.servlet.*;
 import jakarta.servlet.annotation.WebFilter;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import jakarta.servlet.http.Cookie;
 
-// Apply to all API routes (but NOT auth routes)@WebFilter("/api/*")
+@WebFilter("/api/*")
 public class JwtFilter implements Filter {
 
     public void doFilter(ServletRequest req, ServletResponse res, FilterChain chain) 
@@ -20,7 +20,6 @@ public class JwtFilter implements Filter {
 
         String token = null;
 
-        // 1. SEARCH FOR COOKIE
         if (request.getCookies() != null) {
             for (Cookie cookie : request.getCookies()) {
                 if ("authToken".equals(cookie.getName())) {
@@ -30,18 +29,19 @@ public class JwtFilter implements Filter {
             }
         }
 
-        // 2. VALIDATE TOKEN
         if (token != null) {
-            Claims claims = JwtUtil.validateToken(token);
-            if (claims != null) {
-                request.setAttribute("userId", claims.get("id"));
-                request.setAttribute("userRole", claims.get("role"));
+            // FIX: Use the new Auth0 method
+            DecodedJWT jwt = JwtUtil.validateToken(token);
+            
+            if (jwt != null) {
+                // Extract data using the Auth0 way
+                request.setAttribute("userId", JwtUtil.getUserId(jwt));
+                request.setAttribute("userRole", JwtUtil.getRole(jwt));
                 chain.doFilter(request, response);
                 return;
             }
         }
 
-        // 3. FAIL
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         response.getWriter().write("{\"error\": \"Unauthorized\"}");
     }

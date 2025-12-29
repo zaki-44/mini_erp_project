@@ -4,12 +4,12 @@ import jakarta.servlet.http.*;
 import jakarta.servlet.annotation.*;
 import java.io.*;
 
-import com.app.dao.Implementation.*;
+import com.app.dao.implementation.*;
 import com.app.model.*;
 import com.app.model.Enums.Role;
 import com.app.model.Enums.VehicleType;
 import com.app.util.EmailService;
-import com.app.util.JWTUtil;
+import com.app.util.JwtUtil;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 
@@ -30,7 +30,7 @@ public class RegisterServlet extends HttpServlet {
         String phoneNumber = jsonObject.get("phonenumber").getAsString();
         Role role = Role.valueOf(jsonObject.get("role").getAsString().toUpperCase());
         User newUser = new User(0, email , username, password, firstname, lastname, phoneNumber, role , false);
-        String code = JWTUtil.generateCode();
+        String code = JwtUtil.generateCode();
         PrintWriter out = resp.getWriter();
         UserDAO userDAO = new UserDAO();
         try{
