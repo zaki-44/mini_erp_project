@@ -15,8 +15,8 @@ public class DelivererDAO implements DAO<Deliverer>{
     @Override
     public void insert(Deliverer deliverer) throws SQLException {
         // Add to deliverer and users table
-        String toUser = "INSERT INTO users (email, username, password_hash, first_name, last_name, phone_number, role) "
-                   + "VALUES (?, ?, ?, ?, ?, ?, ?)";
+        String toUser = "INSERT INTO users (email, username, password_hash, first_name, last_name, phone_number, role , email_verified) "
+                   + "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
         String toDeliverer = "INSERT INTO deliverer (id, vehicle_type, is_available, max_weight , current_load, city , serial_number , rate) "
                    + "VALUES (?, ?, ?, ? , ?, ?, ?, ?)";
         Connection conn = null;
@@ -32,6 +32,8 @@ public class DelivererDAO implements DAO<Deliverer>{
             userStmt.setString(5, deliverer.getLastName());
             userStmt.setString(6, deliverer.getPhoneNumber());
             userStmt.setString(7, "DELIVERER");
+            userStmt.setBoolean(8, deliverer.isEmailVerified());
+            
             userStmt.executeUpdate();
 
             // Get generated user ID
@@ -82,7 +84,7 @@ public class DelivererDAO implements DAO<Deliverer>{
     }
     @Override
     public void update(Deliverer deliverer) throws SQLException {
-        String updateUser = "UPDATE users SET email=?, username=?, password_hash=?, first_name=?, last_name=?, phone_number=?, role=?"
+        String updateUser = "UPDATE users SET email=?, username=?, password_hash=?, first_name=?, last_name=?, phone_number=?, role=? , email_verified=? "
                    + "WHERE id=?";
         String updateDeliverer = "UPDATE deliverer SET vehicle_type=?, is_available=?, max_weight=?, current_load=?, city=?, serial_number=?, rate=? WHERE id=?";
         Connection conn = null;
@@ -97,7 +99,8 @@ public class DelivererDAO implements DAO<Deliverer>{
             userStmt.setString(5, deliverer.getLastName());
             userStmt.setString(6, deliverer.getPhoneNumber());
             userStmt.setString(7, "DELIVERER");
-            userStmt.setInt(8, deliverer.getId());
+            userStmt.setBoolean(8, deliverer.isEmailVerified());
+            userStmt.setInt(9, deliverer.getId());
             
             userStmt.executeUpdate();
             userStmt.close();
@@ -241,6 +244,7 @@ public class DelivererDAO implements DAO<Deliverer>{
             deliverer.setCity(rs.getString("city"));
             deliverer.setSerialNumber(rs.getString("serial_number"));
             deliverer.setRate(rs.getDouble("rate"));
+            deliverer.setEmailVerified(rs.getBoolean("email_verified"));
             return deliverer;
         }
         catch(SQLException e){

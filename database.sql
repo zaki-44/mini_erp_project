@@ -6,6 +6,7 @@ CREATE TABLE `users` (
     first_name VARCHAR(100) NOT NULL,
     last_name VARCHAR(100) NOT NULL,
     phone_number VARCHAR(30),
+    email_verified BOOLEAN DEFAULT FALSE,
     role ENUM('ADMIN', 'CLIENT', 'DELIVERER') NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -15,7 +16,6 @@ CREATE TABLE client (
     address VARCHAR(255),
     city VARCHAR(100),
     postal_code INT,
-    email_verified BOOLEAN DEFAULT FALSE,
     FOREIGN KEY (id) REFERENCES users(id) ON DELETE CASCADE
 );
 
@@ -74,4 +74,15 @@ CREATE TABLE notification (
 
     FOREIGN KEY (id_package) REFERENCES package(id_package) ON DELETE CASCADE,
     FOREIGN KEY (id_user_target) REFERENCES users(id) ON DELETE CASCADE
+);
+
+
+CREATE TABLE email_verification (
+    user_id INT PRIMARY KEY,
+    verification_code_hash VARCHAR(255) NOT NULL,
+    expires_at TIMESTAMP NOT NULL,
+    verified BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );

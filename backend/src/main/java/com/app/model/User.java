@@ -11,12 +11,13 @@ public class User {
     private String lastName;
     private String phoneNumber;
     private Role role;
+    private boolean emailVerified;
 
     // Constructors
     public User() {}
 
     public User(int id, String email, String username, String passwordHash,
-                String firstName, String lastName, String phoneNumber, Role role) {
+                String firstName, String lastName, String phoneNumber, Role role , boolean emailVerified) {
         this.id = id;
         this.email = email;
         this.username = username;
@@ -25,6 +26,7 @@ public class User {
         this.lastName = lastName;
         this.phoneNumber = phoneNumber;
         this.role = role;
+        this.emailVerified = emailVerified;
     }
 
     // Getters and Setters
@@ -51,6 +53,13 @@ public class User {
 
     public String getRole() { return role.name(); }
     public void setRole(Role role) { this.role = role; }
+
+    public boolean isEmailVerified() {
+        return emailVerified;
+    }
+    public void setEmailVerified(boolean emailVerified) {
+        this.emailVerified = emailVerified;
+    }
     
     public void print(){
         System.out.println("User [id=" + id + ", email=" + email + ", username=" + username + ", passwordHash=" + passwordHash

@@ -10,9 +10,6 @@ public class Client extends User {
     private String city;
     private int postalCode;
 
-    // Verification status
-    private boolean emailVerified;
-
     // Relationships (packages)
     private List<Package> sentPackages;
     private List<Package> receivedPackages;
@@ -33,15 +30,18 @@ public class Client extends User {
             String address,
             String city,
             int postalCode,
-            boolean phoneVerified,
             boolean emailVerified) {
-        super(id, email, username, passwordHash, firstName, lastName, phoneNumber, role);
+        super(id, email, username, passwordHash, firstName, lastName, phoneNumber, role , emailVerified);
         this.address = address;
         this.city = city;
         this.postalCode = postalCode;
-        this.emailVerified = emailVerified;
-      
-        
+    }
+    public Client(User user, String address, String city, int postalCode) {
+        super(user.getId(), user.getEmail(), user.getUsername(), user.getPasswordHash(),
+              user.getFirstName(), user.getLastName(), user.getPhoneNumber(), Role.valueOf(user.getRole()) , user.isEmailVerified());
+        this.address = address;
+        this.city = city;
+        this.postalCode = postalCode;
     }
 
     // Getters & Setters
@@ -69,15 +69,6 @@ public class Client extends User {
     public void setPostalCode(int postalCode) {
         this.postalCode = postalCode;
     }
-
-    public boolean isEmailVerified() {
-        return emailVerified;
-    }
-
-    public void setEmailVerified(boolean emailVerified) {
-        this.emailVerified = emailVerified;
-    }
-
 
     
  

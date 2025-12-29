@@ -14,9 +14,21 @@ public class Deliverer extends User {
     public Deliverer() {}
 
     public Deliverer(int id, String email, String username, String passwordHash,
-                     String firstName, String lastName, String phoneNumber, String city, Role role,
+                     String firstName, String lastName, String phoneNumber,boolean emailVerified,String city, Role role,
                      VehicleType vehicleType, boolean available, double maxWeight, double currentLoad, String serialNumber, double rate) {
-        super(id, email, username, passwordHash, firstName, lastName, phoneNumber, role);
+        super(id, email, username, passwordHash, firstName, lastName, phoneNumber, role , emailVerified);
+        this.vehicleType = vehicleType;
+        this.city = city;
+        this.available = available;
+        this.maxWeight = maxWeight;
+        this.currentLoad = currentLoad;
+        this.serialNumber = serialNumber;
+        this.rate = rate;
+    }
+    public Deliverer(User user, String city, Role role,
+                     VehicleType vehicleType, boolean available, double maxWeight, double currentLoad, String serialNumber, double rate) {
+        super(user.getId(), user.getEmail(), user.getUsername(), user.getPasswordHash(),
+              user.getFirstName(), user.getLastName(), user.getPhoneNumber(), Role.valueOf(user.getRole()) , user.isEmailVerified());
         this.vehicleType = vehicleType;
         this.city = city;
         this.available = available;

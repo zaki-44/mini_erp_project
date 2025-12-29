@@ -14,10 +14,10 @@ public class ClientDAO implements DAO<Client> {
 
     @Override
     public void insert(Client client) throws SQLException {
-        String insertUser = "INSERT INTO users (email, username, password_hash, first_name, last_name, phone_number, role) "
-                + "VALUES (?, ?, ?, ?, ?, ?, ?)";
+        String insertUser = "INSERT INTO users (email, username, password_hash, first_name, last_name, phone_number, role, email_verified) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 
-        String insertClient = "INSERT INTO client (id, address, city, postal_code , email_verified) VALUES (?, ?, ?, ?, ?)";
+        String insertClient = "INSERT INTO client (id, address, city, postal_code) VALUES (?, ?, ?, ?)";
         Connection conn = null;
         try {
             conn = Database.getConnection();
@@ -31,6 +31,7 @@ public class ClientDAO implements DAO<Client> {
             userStmt.setString(5, client.getLastName());
             userStmt.setString(6, client.getPhoneNumber());
             userStmt.setString(7, "CLIENT");
+            userStmt.setBoolean(8, client.isEmailVerified());
             userStmt.executeUpdate();
 
             // Get generated ID
@@ -50,7 +51,6 @@ public class ClientDAO implements DAO<Client> {
             clientStmt.setString(2, client.getAddress());
             clientStmt.setString(3, client.getCity());
             clientStmt.setInt(4, client.getPostalCode());
-            clientStmt.setBoolean(5, client.isEmailVerified());
             clientStmt.executeUpdate();
             clientStmt.close();
             conn.commit();
@@ -80,10 +80,10 @@ public class ClientDAO implements DAO<Client> {
 
     @Override
     public void update(Client client) throws SQLException {
-        String updateUser = "UPDATE users SET email=?, username=?, password_hash=?, first_name=?, last_name=?, phone_number=?, role=? "
+        String updateUser = "UPDATE users SET email=?, username=?, password_hash=?, first_name=?, last_name=?, phone_number=?, role=? , email_verified=? "
                 + "WHERE id=?";
 
-        String updateClient = "UPDATE client SET address=?, city=?, postal_code=?, email_verified=? WHERE id=?";
+        String updateClient = "UPDATE client SET address=?, city=?, postal_code=? WHERE id=?";
         Connection conn = null;
         try {
             conn = Database.getConnection();
@@ -97,7 +97,8 @@ public class ClientDAO implements DAO<Client> {
             userStmt.setString(5, client.getLastName());
             userStmt.setString(6, client.getPhoneNumber());
             userStmt.setString(7, "CLIENT");
-            userStmt.setInt(8, client.getId());
+            userStmt.setBoolean(8, client.isEmailVerified());
+            userStmt.setInt(9, client.getId());
             userStmt.executeUpdate();
             userStmt.close();
 
@@ -105,9 +106,7 @@ public class ClientDAO implements DAO<Client> {
             clientStmt.setString(1, client.getAddress());
             clientStmt.setString(2, client.getCity());
             clientStmt.setInt(3, client.getPostalCode());
-            clientStmt.setBoolean(4, client.isEmailVerified());
-            clientStmt.setInt(5, client.getId());
-            
+            clientStmt.setInt(4, client.getId());            
             clientStmt.executeUpdate();
             clientStmt.close();
             conn.commit();

@@ -20,26 +20,25 @@ public class TestInitServlet extends HttpServlet {
         // 1. Create Clients
         Client client1 = new Client(0, "alice@example.com", "alice_s", "hash1",
                 "Alice", "Smith", "1234567890", Role.CLIENT,
-                "123 Main St", "Metropolis", 12345, true, true);
+                "123 Main St", "Metropolis", 12345, true);
 
         Client client2 = new Client(0, "bob@example.com", "bob_j", "hash2",
                 "Bob", "Johnson", "0987654321", Role.CLIENT,
-                "456 Elm St", "Gotham", 54321, false, true);
-
+                "456 Elm St", "Gotham", 54321, false);
         // 2. Create Deliverers (Updated with: city, currentLoad, serialNumber, and rate)
         // Bike: Max 15kg, Current 0kg, Rate 5.0
         Deliverer deliverer1 = new Deliverer(0, "charlie@example.com", "charlie_b", "hash3",
-                "Charlie", "Brown", "5555555555", "Metropolis", Role.DELIVERER,
+                "Charlie", "Brown", "5555555555",true, "Metropolis", Role.DELIVERER,
                 VehicleType.BIKE, true, 15.0, 0.0, "SN-BIKE-001", 5.0);
 
         // Car: Max 100kg, Current 0kg, Rate 15.0
         Deliverer deliverer2 = new Deliverer(0, "diana@example.com", "diana_p", "hash4",
-                "Diana", "Prince", "4444444444", "Gotham", Role.DELIVERER,
+                "Diana", "Prince", "4444444444",true, "Gotham", Role.DELIVERER,
                 VehicleType.CAR, true, 100.0, 0.0, "SN-CAR-002", 15.0);
 
         // Truck: Max 500kg, Current 0kg, Rate 50.0
         Deliverer deliverer3 = new Deliverer(0, "ethan@example.com", "ethan_h", "hash5",
-                "Ethan", "Hunt", "3333333333", "Star City", Role.DELIVERER,
+                "Ethan", "Hunt", "3333333333",true, "Star City", Role.DELIVERER,
                 VehicleType.TRUCK, true, 500.0, 0.0, "SN-TRUCK-003", 50.0);
 
         // 3. Create Packages
