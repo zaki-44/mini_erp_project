@@ -1,4 +1,4 @@
-package com.app.controller;
+package com.app.controller.Test;
 
 import jakarta.servlet.*;
 import jakarta.servlet.http.*;
