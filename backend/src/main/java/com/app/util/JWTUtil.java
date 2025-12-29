@@ -1,8 +1,11 @@
 package com.app.util;
+
 import java.util.Date;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
+import com.auth0.jwt.interfaces.DecodedJWT;
 import io.github.cdimascio.dotenv.Dotenv;
+
 public class JWTUtil {
 
     private static final String SECRET_KEY = Dotenv.load().get("JWT_SECRET");
@@ -18,27 +21,25 @@ public class JWTUtil {
                 .sign(algorithm);
     }
 
-    public static int getUserId(String token) {
-        return Integer.parseInt(
-            JWT.require(algorithm).build().verify(token).getSubject()
-        );
-    }
-
-    public static String getRole(String token) {
-        return JWT.require(algorithm).build().verify(token)
-                .getClaim("role").asString();
-    }
-    public static boolean isTokenValid(String token) {
+    // ✅ SINGLE verification point
+    public static DecodedJWT validateToken(String token) {
         try {
-            JWT.require(algorithm).build().verify(token);
-            return true;
+            return JWT.require(algorithm).build().verify(token);
         } catch (Exception e) {
-            return false;
+            return null;
         }
     }
-    public static String generateCode(){
-        //6 Digit code
-        int code = (int)(Math.random() * 900000) + 100000;
+
+    public static int getUserId(DecodedJWT jwt) {
+        return Integer.parseInt(jwt.getSubject());
+    }
+
+    public static String getRole(DecodedJWT jwt) {
+        return jwt.getClaim("role").asString();
+    }
+
+    public static String generateCode() {
+        int code = (int) (Math.random() * 900000) + 100000;
         return String.valueOf(code);
     }
 }
