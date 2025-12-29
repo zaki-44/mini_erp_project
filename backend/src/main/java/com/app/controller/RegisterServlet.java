@@ -59,7 +59,7 @@ public class RegisterServlet extends HttpServlet {
                 clientDAO.insert(newClient);
                 EmailVerificationDAO verificationDAO = new EmailVerificationDAO();
                 verificationDAO.saveVerificationCode(newClient.getId(), code);
-                EmailService.sendEmail(newClient.getEmail() , "Verification Email" , "Your verification code is : " + code);
+                EmailService.sendVerificationEmail(newClient.getEmail() , code);
                 out.println("{\"status\": \"success\", \"message\": \"Client registered successfully\"}");
             }
             catch(Exception e){

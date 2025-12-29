@@ -41,4 +41,11 @@ public class EmailService {
             throw new RuntimeException("Failed to send email: " + e.getMessage());
         }
     }
+    public static void sendVerificationEmail(String to, String code) {
+        String subject = "Email Verification Code";
+        String body = "<h3>Your verification code is:</h3>"
+                    + "<h2 style='color: blue;'>" + code + "</h2>"
+                    + "<p>This code will expire in 15 minutes.</p>";
+        sendEmail(to, subject, body);
+    }
 }

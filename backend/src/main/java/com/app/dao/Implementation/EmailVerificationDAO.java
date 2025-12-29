@@ -35,4 +35,15 @@ public class EmailVerificationDAO{
             stmt.executeUpdate();
         }
     }
+    public void updateVerificationCode(int userId, String newCode) throws SQLException {
+        String updateCode = "UPDATE email_verification SET verification_code_hash = ?, created_at = ?, expires_at = ? WHERE user_id = ?";
+        try (Connection conn = Database.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(updateCode)) {
+            stmt.setString(1, newCode);
+            stmt.setTimestamp(2, new Timestamp(System.currentTimeMillis()));
+            stmt.setTimestamp(3, new Timestamp(System.currentTimeMillis() + 15 * 60 * 1000)); // 15 minutes expiry
+            stmt.setInt(4, userId);
+            stmt.executeUpdate();
+        }
+    }
 }
