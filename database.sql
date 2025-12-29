@@ -73,3 +73,15 @@ CREATE TABLE notification (
     FOREIGN KEY (id_package) REFERENCES package(id_package),
     FOREIGN KEY (id_user_target) REFERENCES users(id)
 );
+
+
+
+-- ALTER TABLE `package` 
+-- -- ADD COLUMN id_deliverer INT NULL,
+-- ADD CONSTRAINT fk_package_deliverer 
+-- FOREIGN KEY (id_deliverer) REFERENCES users(id); 
+-- -- (Assuming your drivers are in the 'users' table. If they are in a 'deliverer' table, change 'users' to 'deliverer')
+
+
+--@block 
+SELECT * FROM package;

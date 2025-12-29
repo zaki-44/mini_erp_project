@@ -70,6 +70,7 @@ public class UserDAO implements DAO<User>{
             stmt.executeUpdate();
         }
     }
+    
 
     @Override
     public void delete(int id) throws SQLException {
@@ -111,6 +112,24 @@ public class UserDAO implements DAO<User>{
         }
         return list;
     }
+
+    
+    public User findByEmail(String email) throws SQLException {
+    String sql = "SELECT * FROM users WHERE email=?";
+    
+    try (Connection conn = Database.getConnection();
+         PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+        stmt.setString(1, email);
+        
+        try (ResultSet rs = stmt.executeQuery()) {
+            if (rs.next()) {
+                return mapResultSetToUser(rs);
+            }
+        }
+    }
+    return null; // Return null if user not found
+}
 
 
 
