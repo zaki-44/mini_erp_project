@@ -1,4 +1,4 @@
-package com.app.controller;
+package com.app.controller.Auth;
 
 import com.app.dao.Implementation.UserDAO;
 import com.app.model.User;
@@ -54,7 +54,9 @@ public class LoginServlet extends HttpServlet {
             User user = userDAO.getByEmail(loginRequest.email);
 
             // 4. Validate Password
-            if (user != null && user.getPasswordHash().equals(loginRequest.password)) {
+            if (user != null && user.getPasswordHash().equals(loginRequest.password) && user.isEmailVerified()) {
+                
+                // --- SUCCESS ---
                 
                // 1. Generate JWT
                 String token = JWTUtil.generateToken(user.getId(), user.getRole());
@@ -76,7 +78,16 @@ public class LoginServlet extends HttpServlet {
 
                 response.setStatus(HttpServletResponse.SC_OK);
 
-            } else {
+            } 
+            else if (user != null && !user.isEmailVerified()) {
+                
+                // --- EMAIL NOT VERIFIED ---
+                
+                jsonResponse.addProperty("status", "error");
+                jsonResponse.addProperty("message", "Email not verified");
+                response.setStatus(HttpServletResponse.SC_FORBIDDEN); // 403
+            }
+            else {
                 
                 // --- FAILURE ---
                 

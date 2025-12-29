@@ -1,4 +1,4 @@
-package com.app.controller;
+package com.app.controller.Api;
 
 import jakarta.servlet.*;
 import jakarta.servlet.http.*;
