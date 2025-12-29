@@ -29,6 +29,7 @@ CREATE TABLE deliverer (
     city VARCHAR(100),
     rate FLOAT DEFAULT 0,
     is_available BOOLEAN DEFAULT TRUE,
+    is_approved BOOLEAN DEFAULT FALSE,
     FOREIGN KEY (id) REFERENCES users(id) ON DELETE CASCADE
 );
 
