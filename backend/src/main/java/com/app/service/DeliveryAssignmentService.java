@@ -1,5 +1,6 @@
 package com.app.service;
 
+import java.sql.Timestamp;
 import java.util.List;
 import java.util.Map;
 
@@ -127,8 +128,8 @@ public class DeliveryAssignmentService {
             if (weightScore < -100.0) return Double.NEGATIVE_INFINITY;
             double score = 0.0;
             Client sourceClient = affectationDAO.getSourceClient(pkg);
-            if(!isSameCity(deliverer, sourceClient)){
-                return Double.NEGATIVE_INFINITY;
+            if(!isSameCity(deliverer, sourceClient)){ 
+                return Double.NEGATIVE_INFINITY; 
             }
             score += vehicleScore;
             score += weightScore;
@@ -143,12 +144,11 @@ public class DeliveryAssignmentService {
         }
     }
     
-    public Deliverer findBestDelivererForPackage(DeliveryPackage pkg) {
+    public Deliverer findBestDelivererForPackage(List<Deliverer> potentialDeliverers, DeliveryPackage pkg) {
         try{
             Deliverer bestDeliverer = null;
             double bestScore = Double.NEGATIVE_INFINITY;
-            List<Deliverer> availableDeliverers = delivererDAO.findAllAvailable();
-            for (Deliverer deliverer : availableDeliverers) {
+            for (Deliverer deliverer : potentialDeliverers) {
                 List<Affectation> affectations = affectationDAO.findByDelivererId(deliverer.getId());
                 double score = calculateScore(deliverer, pkg , affectations);
 
@@ -166,37 +166,35 @@ public class DeliveryAssignmentService {
     }
    
     public Deliverer autoAssignPackage(int packageId) {
-        try{
+        try {
             DeliveryPackage pkg = packageDAO.findById(packageId);
-            if (pkg == null) {
-                throw new IllegalArgumentException("Package not found with ID: " + packageId);
-            }
-            Deliverer bestDeliverer = findBestDelivererForPackage(pkg);
+            List<Deliverer> potentialDeliverers = delivererDAO.findAvailableByWeight(pkg.getWeight());
+            
+            Deliverer bestDeliverer = findBestDelivererForPackage(potentialDeliverers, pkg);
+
             if (bestDeliverer != null) {
-                Affectation aff = new Affectation();
-                aff.setIdDeliverer(bestDeliverer.getId());
-                aff.setIdPackage(pkg.getIdPackage());
-                aff.setStatus(AffectationStatus.PENDING);
-                aff.setAssignedAt(new java.sql.Timestamp(System.currentTimeMillis()));
+                double newLoad = bestDeliverer.getCurrentLoad() + pkg.getWeight();
+                bestDeliverer.setCurrentLoad(newLoad);
+                if (newLoad >= bestDeliverer.getMaxWeight()) {
+                    bestDeliverer.setAvailable(false);
+                }
+                Affectation aff = new Affectation(0, bestDeliverer.getId(), pkg.getIdPackage(), 
+                                                AffectationStatus.PENDING, new Timestamp(System.currentTimeMillis()));
                 
                 pkg.setStatus(PackageStatus.ASSIGNED);
-                bestDeliverer.setAvailable(false);
-                
-
+                //TODO :
+                // Create other insert and update operations that have a conn parameter then do autocommit off
+                // conn.setAutoCommit(false); and pass the connection
                 affectationDAO.insert(aff);
-                delivererDAO.update(bestDeliverer);
+                delivererDAO.update(bestDeliverer); 
                 packageDAO.update(pkg);
 
                 return bestDeliverer;
-            } else {
-                System.out.println("No available deliverers found for package ID: " + packageId);
-                return null;
             }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
-        catch(Exception e){
-            System.out.println("Error during auto-assigning package: " + e.getMessage());
-            return null;
-        }
+        return null;
     }
 
 }

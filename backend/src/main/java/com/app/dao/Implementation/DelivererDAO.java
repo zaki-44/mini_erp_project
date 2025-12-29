@@ -1,6 +1,7 @@
 package com.app.dao.Implementation;
 
 import java.sql.*;
+import java.util.ArrayList;
 import java.util.List;
 
 import com.app.dao.Interface.DAO;
@@ -14,10 +15,10 @@ public class DelivererDAO implements DAO<Deliverer>{
     @Override
     public void insert(Deliverer deliverer) throws SQLException {
         // Add to deliverer and users table
-        String toUser = "INSERT INTO users (email, username, password_hash, first_name, last_name, phone_number, role) "
-                   + "VALUES (?, ?, ?, ?, ?, ?, ?)";
-        String toDeliverer = "INSERT INTO deliverer (id, vehicle_type, is_available, max_weight , city) "
-                   + "VALUES (?, ?, ?, ? , ?)";
+        String toUser = "INSERT INTO users (email, username, password_hash, first_name, last_name, phone_number, role , email_verified) "
+                   + "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+        String toDeliverer = "INSERT INTO deliverer (id, vehicle_type, is_available, max_weight , current_load, city , serial_number , rate) "
+                   + "VALUES (?, ?, ?, ? , ?, ?, ?, ?)";
         Connection conn = null;
         try {
             conn = Database.getConnection();
@@ -31,6 +32,8 @@ public class DelivererDAO implements DAO<Deliverer>{
             userStmt.setString(5, deliverer.getLastName());
             userStmt.setString(6, deliverer.getPhoneNumber());
             userStmt.setString(7, "DELIVERER");
+            userStmt.setBoolean(8, deliverer.isEmailVerified());
+            
             userStmt.executeUpdate();
 
             // Get generated user ID
@@ -48,7 +51,10 @@ public class DelivererDAO implements DAO<Deliverer>{
             delivererStmt.setString(2, deliverer.getVehicleType().name());
             delivererStmt.setBoolean(3, deliverer.isAvailable());
             delivererStmt.setDouble(4, deliverer.getMaxWeight());
-            delivererStmt.setString(5, deliverer.getCity());
+            delivererStmt.setDouble(5, deliverer.getCurrentLoad());
+            delivererStmt.setString(6, deliverer.getCity());
+            delivererStmt.setString(7, deliverer.getSerialNumber());
+            delivererStmt.setDouble(8, deliverer.getRate());
             delivererStmt.executeUpdate();
             delivererStmt.close();
 
@@ -78,9 +84,9 @@ public class DelivererDAO implements DAO<Deliverer>{
     }
     @Override
     public void update(Deliverer deliverer) throws SQLException {
-        String updateUser = "UPDATE users SET email=?, username=?, password_hash=?, first_name=?, last_name=?, phone_number=?, role=?"
+        String updateUser = "UPDATE users SET email=?, username=?, password_hash=?, first_name=?, last_name=?, phone_number=?, role=? , email_verified=? "
                    + "WHERE id=?";
-        String updateDeliverer = "UPDATE deliverer SET vehicle_type=?, is_available=?, max_weight=? , city=? WHERE id=?";
+        String updateDeliverer = "UPDATE deliverer SET vehicle_type=?, is_available=?, max_weight=?, current_load=?, city=?, serial_number=?, rate=? WHERE id=?";
         Connection conn = null;
         try {
             conn = Database.getConnection();
@@ -93,7 +99,8 @@ public class DelivererDAO implements DAO<Deliverer>{
             userStmt.setString(5, deliverer.getLastName());
             userStmt.setString(6, deliverer.getPhoneNumber());
             userStmt.setString(7, "DELIVERER");
-            userStmt.setInt(8, deliverer.getId());
+            userStmt.setBoolean(8, deliverer.isEmailVerified());
+            userStmt.setInt(9, deliverer.getId());
             
             userStmt.executeUpdate();
             userStmt.close();
@@ -102,9 +109,12 @@ public class DelivererDAO implements DAO<Deliverer>{
             delivererStmt.setString(1, deliverer.getVehicleType().name());
             delivererStmt.setBoolean(2, deliverer.isAvailable());
             delivererStmt.setDouble(3, deliverer.getMaxWeight());
-            delivererStmt.setString(4, deliverer.getCity());
+            delivererStmt.setDouble(4, deliverer.getCurrentLoad());
+            delivererStmt.setString(5, deliverer.getCity());
+            delivererStmt.setString(6, deliverer.getSerialNumber());
             
-            delivererStmt.setInt(5, deliverer.getId());
+            delivererStmt.setDouble(7, deliverer.getRate());
+            delivererStmt.setInt(8, deliverer.getId());
             delivererStmt.executeUpdate();
             delivererStmt.close();
             conn.commit(); // Commit transaction
@@ -176,7 +186,7 @@ public class DelivererDAO implements DAO<Deliverer>{
     }
     @Override
     public Deliverer findById(int id) throws SQLException {
-        String sql = "SELECT u.id, u.email, u.username, u.password_hash, u.first_name, u.last_name, u.phone_number, d.vehicle_type , d.is_available , d.max_weight , d.city "
+        String sql = "SELECT u.*, d.* "
                    + "FROM users u JOIN deliverer d ON u.id = d.id WHERE u.id=?";
         Deliverer deliverer = null;
         try (Connection conn = Database.getConnection();
@@ -198,7 +208,7 @@ public class DelivererDAO implements DAO<Deliverer>{
     }
     @Override
     public List<Deliverer> findAll() throws SQLException {
-        String sql = "SELECT u.id, u.email, u.username, u.password_hash, u.first_name, u.last_name, u.phone_number, d.vehicle_type , d.is_available, d.max_weight , d.city "
+        String sql = "SELECT u.*, d.* "
                    + "FROM users u JOIN deliverer d ON u.id = d.id";
         List<Deliverer> deliverers = new java.util.ArrayList<>();
         try (Connection conn = Database.getConnection();
@@ -230,7 +240,11 @@ public class DelivererDAO implements DAO<Deliverer>{
             deliverer.setVehicleType(VehicleType.valueOf(rs.getString("vehicle_type")));
             deliverer.setAvailable(rs.getBoolean("is_available"));
             deliverer.setMaxWeight(rs.getDouble("max_weight"));
+            deliverer.setCurrentLoad(rs.getDouble("current_load"));
             deliverer.setCity(rs.getString("city"));
+            deliverer.setSerialNumber(rs.getString("serial_number"));
+            deliverer.setRate(rs.getDouble("rate"));
+            deliverer.setEmailVerified(rs.getBoolean("email_verified"));
             return deliverer;
         }
         catch(SQLException e){
@@ -240,7 +254,7 @@ public class DelivererDAO implements DAO<Deliverer>{
     }
 
     public List<Deliverer> findAllAvailable() throws SQLException {
-        String sql = "SELECT u.id, u.email, u.username, u.password_hash, u.first_name, u.last_name, u.phone_number, d.vehicle_type , d.is_available , d.max_weight , d.city "
+        String sql = "SELECT u.*, d.* "
                    + "FROM users u JOIN deliverer d ON u.id = d.id WHERE d.is_available = TRUE";
         List<Deliverer> deliverers = new java.util.ArrayList<>();
         try (Connection conn = Database.getConnection();
@@ -260,7 +274,7 @@ public class DelivererDAO implements DAO<Deliverer>{
     }
 
     public List<Deliverer> findByAffectation(Affectation aff) throws SQLException {
-        String sql = "SELECT u.id, u.email, u.username, u.password_hash, u.first_name, u.last_name, u.phone_number, d.vehicle_type , d.is_available , d.max_weight , d.city "
+        String sql = "SELECT u.*, d.* "
                    + "FROM users u JOIN deliverer d ON u.id = d.id "
                    + "JOIN affectation a ON d.id = a.id_deliverer WHERE a.id_affectation=?";
         List<Deliverer> deliverers = new java.util.ArrayList<>();
@@ -281,5 +295,21 @@ public class DelivererDAO implements DAO<Deliverer>{
         }
         return deliverers;
     }
+    public List<Deliverer> findAvailableByWeight(double packageWeight) throws SQLException {
+        // Look for deliverers who are manually 'available' AND have room for the weight
+        String sql = "SELECT u.*, d.* FROM users u JOIN deliverer d ON u.id = d.id " +
+                    "WHERE d.is_available = TRUE AND (d.current_load + ?) <= d.max_weight";
+        
+        List<Deliverer> deliverers = new ArrayList<>();
+        try (Connection conn = Database.getConnection();
+            PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setDouble(1, packageWeight);
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                deliverers.add(mapDeliverer(rs));
+            }
+        }
+        return deliverers;
+    }   
 
 }

@@ -7,14 +7,13 @@ import java.io.*;
 import java.util.List;
 import com.google.gson.Gson;
 import com.app.model.Enums.PackageStatus;
-import com.app.model.Enums.VehicleType;
 import com.app.service.DeliveryAssignmentService;
 import com.app.dao.Implementation.*;
 import com.app.model.*;
 
 
 @WebServlet("/api/database/test")
-public class Servlet extends HttpServlet {
+public class TestServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         DeliveryAssignmentService assignmentService = new DeliveryAssignmentService();
@@ -33,7 +32,9 @@ public class Servlet extends HttpServlet {
         Gson gson = new Gson();
         String json = gson.toJson(deliverer);
         String pkgJson = gson.toJson(pkg);
+        out.println("Deliverer assigned:");
         out.println(json);
+        out.println("Package after assignment:");
         out.println(pkgJson);
     }
     @Override
