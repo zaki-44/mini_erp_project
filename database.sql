@@ -81,7 +81,6 @@ CREATE TABLE email_verification (
     user_id INT PRIMARY KEY,
     verification_code_hash VARCHAR(255) NOT NULL,
     expires_at TIMESTAMP NOT NULL,
-    verified BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE

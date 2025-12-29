@@ -29,6 +29,7 @@ public class VerifyCodeServlet extends HttpServlet {
                 user.setEmailVerified(true);
                 userDAO.update(user);
                 out.println("{\"status\": \"success\", \"message\": \"Email verified successfully\"}");
+                verificationDAO.markAsVerified(id);
             }
             else{
                 out.println("{\"status\": \"fail\", \"message\": \"Invalid verification code\"}");

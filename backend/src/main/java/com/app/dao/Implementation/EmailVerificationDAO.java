@@ -27,4 +27,12 @@ public class EmailVerificationDAO{
             return rs.next();
         }
     }
+    public void markAsVerified(int userId) throws SQLException {
+        String deleteCode = "DELETE FROM email_verification WHERE user_id = ?";
+        try (Connection conn = Database.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(deleteCode)) {
+            stmt.setInt(1, userId);
+            stmt.executeUpdate();
+        }
+    }
 }
