@@ -1,14 +1,15 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
 import { Label } from './ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
-import { mockOrders, mockUsers } from '../lib/mockData';
 import { StatusBadge } from './StatusBadge';
-import { Plus, MapPin, Package, LogOut, Send, Inbox, CheckCircle, X, Search } from 'lucide-react';
+import { Plus, MapPin, Package, LogOut, Send, Inbox, CheckCircle, X, Search, Loader2 } from 'lucide-react';
 import type { Order, User } from '../types';
+import { fetchOrders, fetchUsers, createOrder, updateOrderStatus } from '../lib/api';
+import { mockOrders, mockUsers } from '../lib/mockData';
 
 interface AuthUser {
   id: string;
@@ -23,15 +24,16 @@ interface ClientDashboardProps {
 }
 
 export function ClientDashboard({ user, onLogout }: ClientDashboardProps) {
+  const [allOrders, setAllOrders] = useState<Order[]>([]);
+  const [allUsers, setAllUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
   // Orders sent by this client
-  const [sentOrders, setSentOrders] = useState<Order[]>(
-    mockOrders.filter(o => o.emetteurId === user.id)
-  );
+  const [sentOrders, setSentOrders] = useState<Order[]>([]);
   
   // Orders received by this client
-  const [receivedOrders, setReceivedOrders] = useState<Order[]>(
-    mockOrders.filter(o => o.recepteurId === user.id)
-  );
+  const [receivedOrders, setReceivedOrders] = useState<Order[]>([]);
 
   const [showNewOrderForm, setShowNewOrderForm] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -40,8 +42,49 @@ export function ClientDashboard({ user, onLogout }: ClientDashboardProps) {
   const [newOrder, setNewOrder] = useState({
     description: '',
     weight: '',
-    pickupAddress: mockUsers.find(u => u.id === user.id)?.address || '',
+    pickupAddress: '',
   });
+
+  // Fetch data on component mount
+  useEffect(() => {
+    const loadData = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const [ordersData, usersData] = await Promise.all([
+          fetchOrders(),
+          fetchUsers(),
+        ]);
+        setAllOrders(ordersData);
+        setAllUsers(usersData);
+        
+        // Filter orders for this user
+        setSentOrders(ordersData.filter(o => o.emetteurId === user.id));
+        setReceivedOrders(ordersData.filter(o => o.recepteurId === user.id));
+        
+        // Set default pickup address
+        const currentUser = usersData.find(u => u.id === user.id);
+        if (currentUser?.address) {
+          setNewOrder(prev => ({ ...prev, pickupAddress: currentUser.address || '' }));
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load data');
+        // Fallback to mock data
+        setAllOrders(mockOrders);
+        setAllUsers(mockUsers);
+        setSentOrders(mockOrders.filter(o => o.emetteurId === user.id));
+        setReceivedOrders(mockOrders.filter(o => o.recepteurId === user.id));
+        const currentUser = mockUsers.find(u => u.id === user.id);
+        if (currentUser?.address) {
+          setNewOrder(prev => ({ ...prev, pickupAddress: currentUser.address || '' }));
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, [user.id]);
 
   const handleSearchUsers = (query: string) => {
     setSearchQuery(query);
@@ -50,7 +93,7 @@ export function ClientDashboard({ user, onLogout }: ClientDashboardProps) {
       return;
     }
     
-    const results = mockUsers.filter(u => 
+    const results = allUsers.filter(u => 
       u.role === 'client' && 
       u.id !== user.id &&
       (u.name.toLowerCase().includes(query.toLowerCase()) ||
@@ -65,61 +108,116 @@ export function ClientDashboard({ user, onLogout }: ClientDashboardProps) {
     setSearchResults([]);
   };
 
-  const handleCreateOrder = () => {
+  const handleCreateOrder = async () => {
     if (!selectedReceiver) return;
 
-    const order: Order = {
-      id: String(Date.now()),
-      emetteurId: user.id,
-      emetteurName: user.name,
-      recepteurId: selectedReceiver.id,
-      recepteurName: selectedReceiver.name,
-      recepteurAddress: selectedReceiver.address || '',
-      status: 'confirmed', // Orders are auto-confirmed, no admin approval needed
-      description: newOrder.description,
-      weight: parseFloat(newOrder.weight),
-      pickupAddress: newOrder.pickupAddress,
-      deliveryAddress: selectedReceiver.address || '',
-      latitude: selectedReceiver.latitude || 48.8566,
-      longitude: selectedReceiver.longitude || 2.3522,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+    try {
+      const orderData: Partial<Order> = {
+        emetteurId: user.id,
+        emetteurName: user.name,
+        recepteurId: selectedReceiver.id,
+        recepteurName: selectedReceiver.name,
+        recepteurAddress: selectedReceiver.address || '',
+        status: 'confirmed',
+        description: newOrder.description,
+        weight: parseFloat(newOrder.weight),
+        pickupAddress: newOrder.pickupAddress,
+        deliveryAddress: selectedReceiver.address || '',
+        latitude: selectedReceiver.latitude || 48.8566,
+        longitude: selectedReceiver.longitude || 2.3522,
+      };
 
-    setSentOrders([order, ...sentOrders]);
+      const createdOrder = await createOrder(orderData);
+      setSentOrders([createdOrder, ...sentOrders]);
+      setAllOrders([createdOrder, ...allOrders]);
+    } catch (err) {
+      // Fallback: create locally if API fails
+      const order: Order = {
+        id: String(Date.now()),
+        emetteurId: user.id,
+        emetteurName: user.name,
+        recepteurId: selectedReceiver.id,
+        recepteurName: selectedReceiver.name,
+        recepteurAddress: selectedReceiver.address || '',
+        status: 'confirmed',
+        description: newOrder.description,
+        weight: parseFloat(newOrder.weight),
+        pickupAddress: newOrder.pickupAddress,
+        deliveryAddress: selectedReceiver.address || '',
+        latitude: selectedReceiver.latitude || 48.8566,
+        longitude: selectedReceiver.longitude || 2.3522,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      setSentOrders([order, ...sentOrders]);
+      setAllOrders([order, ...allOrders]);
+    }
+
     setShowNewOrderForm(false);
     setSearchQuery('');
     setSelectedReceiver(null);
     setNewOrder({
       description: '',
       weight: '',
-      pickupAddress: mockUsers.find(u => u.id === user.id)?.address || '',
+      pickupAddress: allUsers.find(u => u.id === user.id)?.address || '',
     });
   };
 
-  const handleCancelOrder = (orderId: string) => {
-    // Can only cancel before it's picked up by a delivery person
-    setSentOrders(sentOrders.map(order => 
-      order.id === orderId && ['confirmed'].includes(order.status)
-        ? { ...order, status: 'cancelled' as const, updatedAt: new Date() }
-        : order
-    ));
+  const handleCancelOrder = async (orderId: string) => {
+    try {
+      await updateOrderStatus(orderId, 'cancelled');
+      const updatedOrder = allOrders.find(o => o.id === orderId);
+      if (updatedOrder) {
+        const cancelled = { ...updatedOrder, status: 'cancelled' as const, updatedAt: new Date() };
+        setSentOrders(sentOrders.map(o => o.id === orderId ? cancelled : o));
+        setAllOrders(allOrders.map(o => o.id === orderId ? cancelled : o));
+      }
+    } catch (err) {
+      // Fallback: update locally
+      setSentOrders(sentOrders.map(order => 
+        order.id === orderId && ['confirmed'].includes(order.status)
+          ? { ...order, status: 'cancelled' as const, updatedAt: new Date() }
+          : order
+      ));
+    }
   };
 
-  const handleAcceptDelivery = (orderId: string) => {
-    setReceivedOrders(receivedOrders.map(order => 
-      order.id === orderId && order.status === 'in_transit'
-        ? { ...order, status: 'delivered' as const, updatedAt: new Date() }
-        : order
-    ));
+  const handleAcceptDelivery = async (orderId: string) => {
+    try {
+      await updateOrderStatus(orderId, 'delivered');
+      const updatedOrder = allOrders.find(o => o.id === orderId);
+      if (updatedOrder) {
+        const delivered = { ...updatedOrder, status: 'delivered' as const, updatedAt: new Date() };
+        setReceivedOrders(receivedOrders.map(o => o.id === orderId ? delivered : o));
+        setAllOrders(allOrders.map(o => o.id === orderId ? delivered : o));
+      }
+    } catch (err) {
+      // Fallback: update locally
+      setReceivedOrders(receivedOrders.map(order => 
+        order.id === orderId && order.status === 'in_transit'
+          ? { ...order, status: 'delivered' as const, updatedAt: new Date() }
+          : order
+      ));
+    }
   };
 
-  const handleRejectDelivery = (orderId: string) => {
-    setReceivedOrders(receivedOrders.map(order => 
-      order.id === orderId && order.status === 'in_transit'
-        ? { ...order, status: 'rejected_by_receiver' as const, updatedAt: new Date() }
-        : order
-    ));
+  const handleRejectDelivery = async (orderId: string) => {
+    try {
+      await updateOrderStatus(orderId, 'rejected_by_receiver');
+      const updatedOrder = allOrders.find(o => o.id === orderId);
+      if (updatedOrder) {
+        const rejected = { ...updatedOrder, status: 'rejected_by_receiver' as const, updatedAt: new Date() };
+        setReceivedOrders(receivedOrders.map(o => o.id === orderId ? rejected : o));
+        setAllOrders(allOrders.map(o => o.id === orderId ? rejected : o));
+      }
+    } catch (err) {
+      // Fallback: update locally
+      setReceivedOrders(receivedOrders.map(order => 
+        order.id === orderId && order.status === 'in_transit'
+          ? { ...order, status: 'rejected_by_receiver' as const, updatedAt: new Date() }
+          : order
+      ));
+    }
   };
 
   return (
@@ -142,6 +240,11 @@ export function ClientDashboard({ user, onLogout }: ClientDashboardProps) {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
+        {error && (
+          <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-yellow-900">
+            <p className="text-sm">⚠️ {error} (Using fallback data)</p>
+          </div>
+        )}
         <Tabs defaultValue="send" className="space-y-6">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="send">

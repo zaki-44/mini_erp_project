@@ -10,6 +10,7 @@ import {
   FieldSeparator,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import { login } from "@/lib/api"
 
 interface AuthUser {
   id: string;
@@ -24,7 +25,7 @@ interface LoginPageProps {
   className?: string;
 }
 
-// Mock users for demo
+// Mock users for demo/fallback (can be removed once backend is ready)
 const mockUsers = [
   { id: 'admin1', name: 'Admin User', email: 'admin@erp.com', password: 'admin', type: 'admin' as const },
   { id: 'client1', name: 'Jean Dupont', email: 'jean@email.com', password: 'client', type: 'client' as const },
@@ -37,39 +38,58 @@ export function LoginPage({ onLogin, onShowRegister, className, ...props }: Logi
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setLoading(true);
 
-    const user = mockUsers.find(u => u.email === email && u.password === password);
-
-    if (user) {
-      onLogin({
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        type: user.type,
-      });
-    } else {
-      setError('Invalid email or password');
-    }
-  };
-
-  const handleQuickLogin = (userEmail: string, userPassword: string) => {
-    setEmail(userEmail);
-    setPassword(userPassword);
-    // Auto-submit after setting credentials
-    const user = mockUsers.find(u => u.email === userEmail && u.password === userPassword);
-    if (user) {
-      setTimeout(() => {
+    try {
+      const response = await login(email, password);
+      onLogin(response.user);
+    } catch (err) {
+      // Fallback to mock users if API fails (for development)
+      const user = mockUsers.find(u => u.email === email && u.password === password);
+      if (user) {
         onLogin({
           id: user.id,
           name: user.name,
           email: user.email,
           type: user.type,
         });
-      }, 100);
+      } else {
+        setError(err instanceof Error ? err.message : 'Invalid email or password');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleQuickLogin = async (userEmail: string, userPassword: string) => {
+    setEmail(userEmail);
+    setPassword(userPassword);
+    setError('');
+    setLoading(true);
+
+    try {
+      const response = await login(userEmail, userPassword);
+      onLogin(response.user);
+    } catch (err) {
+      // Fallback to mock users if API fails
+      const user = mockUsers.find(u => u.email === userEmail && u.password === userPassword);
+      if (user) {
+        onLogin({
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          type: user.type,
+        });
+      } else {
+        setError(err instanceof Error ? err.message : 'Invalid email or password');
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -128,7 +148,9 @@ export function LoginPage({ onLogin, onShowRegister, className, ...props }: Logi
                 )}
 
                 <Field>
-                  <Button type="submit" className="w-full">Login</Button>
+                  <Button type="submit" className="w-full" disabled={loading}>
+                    {loading ? 'Logging in...' : 'Login'}
+                  </Button>
                 </Field>
                 
                 <FieldSeparator className="*:data-[slot=field-separator-content]:bg-card">

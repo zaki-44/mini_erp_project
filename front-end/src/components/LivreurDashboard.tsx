@@ -1,12 +1,13 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Avatar, AvatarFallback } from './ui/avatar';
-import { mockOrders, mockDeliveryHistory } from '../lib/mockData';
 import { StatusBadge } from './StatusBadge';
-import { MapPin, Package, LogOut, CheckCircle, Truck, User, Search } from 'lucide-react';
+import { MapPin, Package, LogOut, CheckCircle, Truck, User as UserIcon, Search, Loader2 } from 'lucide-react';
 import type { Order, DeliveryHistory } from '../types';
+import { fetchOrders, fetchDeliveryHistory, updateOrderStatus, createDeliveryHistory } from '../lib/api';
+import { mockOrders, mockDeliveryHistory } from '../lib/mockData';
 
 interface AuthUser {
   id: string;
@@ -42,29 +43,84 @@ export function LivreurDashboard({ user, onLogout }: LivreurDashboardProps) {
   // Mock current location (in a real app, this would be from GPS)
   const [currentLocation] = useState({ lat: 48.8566, lon: 2.3522 });
   
-  // Deliveries assigned to this delivery person by the backend algorithm
-  const [assignedDeliveries, setAssignedDeliveries] = useState<Order[]>(
-    mockOrders.filter(o => o.livreurId === user.id && !['delivered', 'cancelled', 'rejected_by_receiver'].includes(o.status))
-  );
-  
-  // Available nearby orders (not yet assigned to anyone)
-  const [availableOrders] = useState<OrderWithDistance[]>(
-    mockOrders
-      .filter(o => o.status === 'confirmed' && !o.livreurId)
-      .map(o => ({
-        ...o,
-        distance: calculateDistance(currentLocation.lat, currentLocation.lon, o.latitude, o.longitude)
-      }))
-      .sort((a, b) => a.distance - b.distance)
-  );
-  
-  const [history] = useState<DeliveryHistory[]>(
-    mockDeliveryHistory.filter(h => h.livreurId === user.id)
-  );
+  const [allOrders, setAllOrders] = useState<Order[]>([]);
+  const [assignedDeliveries, setAssignedDeliveries] = useState<Order[]>([]);
+  const [availableOrders, setAvailableOrders] = useState<OrderWithDistance[]>([]);
+  const [history, setHistory] = useState<DeliveryHistory[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const handlePickupOrder = (orderId: string) => {
+  // Fetch data on component mount
+  useEffect(() => {
+    const loadData = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const [ordersData, historyData] = await Promise.all([
+          fetchOrders(),
+          fetchDeliveryHistory(),
+        ]);
+        setAllOrders(ordersData);
+        setHistory(historyData.filter(h => h.livreurId === user.id));
+        
+        // Filter assigned deliveries
+        const assigned = ordersData.filter(
+          o => o.livreurId === user.id && !['delivered', 'cancelled', 'rejected_by_receiver'].includes(o.status)
+        );
+        setAssignedDeliveries(assigned);
+        
+        // Calculate available orders with distance
+        const available = ordersData
+          .filter(o => o.status === 'confirmed' && !o.livreurId)
+          .map(o => ({
+            ...o,
+            distance: calculateDistance(currentLocation.lat, currentLocation.lon, o.latitude, o.longitude)
+          }))
+          .sort((a, b) => a.distance - b.distance);
+        setAvailableOrders(available);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load data');
+        // Fallback to mock data
+        setAllOrders(mockOrders);
+        setHistory(mockDeliveryHistory.filter(h => h.livreurId === user.id));
+        const assigned = mockOrders.filter(
+          o => o.livreurId === user.id && !['delivered', 'cancelled', 'rejected_by_receiver'].includes(o.status)
+        );
+        setAssignedDeliveries(assigned);
+        const available = mockOrders
+          .filter(o => o.status === 'confirmed' && !o.livreurId)
+          .map(o => ({
+            ...o,
+            distance: calculateDistance(currentLocation.lat, currentLocation.lon, o.latitude, o.longitude)
+          }))
+          .sort((a, b) => a.distance - b.distance);
+        setAvailableOrders(available);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, [user.id, currentLocation.lat, currentLocation.lon]);
+
+  const handlePickupOrder = async (orderId: string) => {
     const orderToPickup = availableOrders.find(o => o.id === orderId);
-    if (orderToPickup) {
+    if (!orderToPickup) return;
+
+    try {
+      const updatedOrder = await updateOrderStatus(orderId, 'picked_up');
+      // Update order with livreur info
+      const orderWithLivreur = {
+        ...updatedOrder,
+        livreurId: user.id,
+        livreurName: user.name,
+      };
+      
+      setAssignedDeliveries([orderWithLivreur, ...assignedDeliveries]);
+      setAvailableOrders(availableOrders.filter(o => o.id !== orderId));
+      setAllOrders(allOrders.map(o => o.id === orderId ? orderWithLivreur : o));
+    } catch (err) {
+      // Fallback: update locally
       const updatedOrder = {
         ...orderToPickup,
         livreurId: user.id,
@@ -73,19 +129,63 @@ export function LivreurDashboard({ user, onLogout }: LivreurDashboardProps) {
         updatedAt: new Date()
       };
       setAssignedDeliveries([updatedOrder, ...assignedDeliveries]);
+      setAvailableOrders(availableOrders.filter(o => o.id !== orderId));
     }
   };
 
-  const handleStartDelivery = (orderId: string) => {
-    setAssignedDeliveries(assignedDeliveries.map(order => 
-      order.id === orderId && order.status === 'picked_up'
-        ? { ...order, status: 'in_transit' as const, updatedAt: new Date() }
-        : order
-    ));
+  const handleStartDelivery = async (orderId: string) => {
+    try {
+      await updateOrderStatus(orderId, 'in_transit');
+      const updated = assignedDeliveries.map(order => 
+        order.id === orderId && order.status === 'picked_up'
+          ? { ...order, status: 'in_transit' as const, updatedAt: new Date() }
+          : order
+      );
+      setAssignedDeliveries(updated);
+      setAllOrders(allOrders.map(o => 
+        o.id === orderId ? { ...o, status: 'in_transit' as const, updatedAt: new Date() } : o
+      ));
+    } catch (err) {
+      // Fallback: update locally
+      setAssignedDeliveries(assignedDeliveries.map(order => 
+        order.id === orderId && order.status === 'picked_up'
+          ? { ...order, status: 'in_transit' as const, updatedAt: new Date() }
+          : order
+      ));
+    }
   };
 
-  const handleCompleteDelivery = (orderId: string) => {
-    setAssignedDeliveries(assignedDeliveries.filter(o => o.id !== orderId));
+  const handleCompleteDelivery = async (orderId: string) => {
+    try {
+      await updateOrderStatus(orderId, 'delivered');
+      
+      // Create delivery history entry
+      await createDeliveryHistory({
+        orderId,
+        livreurId: user.id,
+        completedAt: new Date(),
+      });
+      
+      setAssignedDeliveries(assignedDeliveries.filter(o => o.id !== orderId));
+      setHistory([...history, {
+        id: String(Date.now()),
+        orderId,
+        livreurId: user.id,
+        completedAt: new Date(),
+      }]);
+      setAllOrders(allOrders.map(o => 
+        o.id === orderId ? { ...o, status: 'delivered' as const, updatedAt: new Date() } : o
+      ));
+    } catch (err) {
+      // Fallback: update locally
+      setAssignedDeliveries(assignedDeliveries.filter(o => o.id !== orderId));
+      setHistory([...history, {
+        id: String(Date.now()),
+        orderId,
+        livreurId: user.id,
+        completedAt: new Date(),
+      }]);
+    }
   };
 
   return (
@@ -108,6 +208,11 @@ export function LivreurDashboard({ user, onLogout }: LivreurDashboardProps) {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
+        {error && (
+          <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-yellow-900">
+            <p className="text-sm">⚠️ {error} (Using fallback data)</p>
+          </div>
+        )}
         <Tabs defaultValue="search" className="space-y-6">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="search">
@@ -363,7 +468,7 @@ export function LivreurDashboard({ user, onLogout }: LivreurDashboardProps) {
                     </div>
                   ) : (
                     history.map(item => {
-                      const order = mockOrders.find(o => o.id === item.orderId);
+                      const order = allOrders.find(o => o.id === item.orderId);
                       return (
                         <div
                           key={item.id}

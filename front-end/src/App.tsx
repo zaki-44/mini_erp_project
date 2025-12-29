@@ -5,6 +5,7 @@ import type { RegisterData } from './components/RegisterPage';
 import { AdminDashboard } from './components/AdminDashboard';
 import { ClientDashboard } from './components/ClientDashboard';
 import { LivreurDashboard } from './components/LivreurDashboard';
+import { register, logout as apiLogout } from './lib/api';
 
 type UserType = 'admin' | 'client' | 'livreur';
 type AppView = 'login' | 'register' | 'dashboard';
@@ -26,14 +27,14 @@ export default function App() {
   };
 
   const handleLogout = () => {
+    apiLogout();
     setUser(null);
     setView('login');
   };
 
-  const handleRegister = (registerData: RegisterData) => {
-    // In a real app, this would make an API call to create the user
-    console.log('Registration data:', registerData);
-    // After successful registration, user would need admin approval
+  const handleRegister = async (registerData: RegisterData) => {
+    await register(registerData);
+    // Registration successful, will redirect to login via RegisterPage
   };
 
   const handleShowRegister = () => {

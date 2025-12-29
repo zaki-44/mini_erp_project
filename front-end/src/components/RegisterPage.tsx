@@ -41,7 +41,7 @@ export function RegisterPage({ onRegister, onBackToLogin, className, ...props }:
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setSuccess(false);
@@ -81,14 +81,17 @@ export function RegisterPage({ onRegister, onBackToLogin, className, ...props }:
       return;
     }
 
-    // Success - in real app, this would call API
-    setSuccess(true);
-    onRegister(formData);
-    
-    // Show success message for 2 seconds then redirect to login
-    setTimeout(() => {
-      onBackToLogin();
-    }, 2000);
+    // Call API to register
+    try {
+      await onRegister(formData);
+      setSuccess(true);
+      // Show success message for 2 seconds then redirect to login
+      setTimeout(() => {
+        onBackToLogin();
+      }, 2000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Registration failed. Please try again.');
+    }
   };
 
   const handleChange = (field: keyof RegisterData, value: string) => {

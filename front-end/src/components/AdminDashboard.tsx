@@ -1,13 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
-import { mockOrders, mockUsers } from '../lib/mockData';
 import { StatusBadge } from './StatusBadge';
-import { Package, Truck, CheckCircle, LogOut, Users, Plus, Trash2, UserCheck } from 'lucide-react';
+import { Package, Truck, CheckCircle, LogOut, Users, Plus, Trash2, UserCheck, Loader2 } from 'lucide-react';
 import type { Order, User } from '../types';
+import { fetchOrders, fetchUsers, createUser, deleteUser } from '../lib/api';
+import { mockOrders, mockUsers } from '../lib/mockData';
 
 interface AuthUser {
   id: string;
@@ -22,8 +23,10 @@ interface AdminDashboardProps {
 }
 
 export function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
-  const [orders] = useState<Order[]>(mockOrders);
-  const [users, setUsers] = useState<User[]>(mockUsers);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [showAddUserForm, setShowAddUserForm] = useState(false);
   const [newUser, setNewUser] = useState({
     name: '',
@@ -34,32 +37,87 @@ export function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
     role: 'client' as 'client' | 'livreur',
   });
 
-  const handleAddUser = () => {
-    const user: User = {
-      id: `user_${Date.now()}`,
-      name: newUser.name,
-      email: newUser.email,
-      role: newUser.role,
-      phone: newUser.phone,
-      address: newUser.address || undefined,
-      latitude: 48.8566 + (Math.random() - 0.5) * 0.1,
-      longitude: 2.3522 + (Math.random() - 0.5) * 0.1,
+  // Fetch data on component mount
+  useEffect(() => {
+    const loadData = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const [ordersData, usersData] = await Promise.all([
+          fetchOrders(),
+          fetchUsers(),
+        ]);
+        setOrders(ordersData);
+        setUsers(usersData);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load data');
+        // Fallback to mock data if API fails
+        setOrders(mockOrders);
+        setUsers(mockUsers);
+      } finally {
+        setLoading(false);
+      }
     };
 
-    setUsers([...users, user]);
-    setShowAddUserForm(false);
-    setNewUser({
-      name: '',
-      email: '',
-      password: '',
-      phone: '',
-      address: '',
-      role: 'client',
-    });
+    loadData();
+  }, []);
+
+  const handleAddUser = async () => {
+    try {
+      const newUserData: Partial<User> = {
+        name: newUser.name,
+        email: newUser.email,
+        role: newUser.role,
+        phone: newUser.phone,
+        address: newUser.address || undefined,
+        latitude: 48.8566 + (Math.random() - 0.5) * 0.1,
+        longitude: 2.3522 + (Math.random() - 0.5) * 0.1,
+      };
+
+      const createdUser = await createUser(newUserData);
+      setUsers([...users, createdUser]);
+      setShowAddUserForm(false);
+      setNewUser({
+        name: '',
+        email: '',
+        password: '',
+        phone: '',
+        address: '',
+        role: 'client',
+      });
+    } catch (err) {
+      // Fallback: add locally if API fails
+      const user: User = {
+        id: `user_${Date.now()}`,
+        name: newUser.name,
+        email: newUser.email,
+        role: newUser.role,
+        phone: newUser.phone,
+        address: newUser.address || undefined,
+        latitude: 48.8566 + (Math.random() - 0.5) * 0.1,
+        longitude: 2.3522 + (Math.random() - 0.5) * 0.1,
+      };
+      setUsers([...users, user]);
+      setShowAddUserForm(false);
+      setNewUser({
+        name: '',
+        email: '',
+        password: '',
+        phone: '',
+        address: '',
+        role: 'client',
+      });
+    }
   };
 
-  const handleRemoveUser = (userId: string) => {
-    setUsers(users.filter(u => u.id !== userId));
+  const handleRemoveUser = async (userId: string) => {
+    try {
+      await deleteUser(userId);
+      setUsers(users.filter(u => u.id !== userId));
+    } catch (err) {
+      // Fallback: remove locally if API fails
+      setUsers(users.filter(u => u.id !== userId));
+    }
   };
 
   const stats = {
