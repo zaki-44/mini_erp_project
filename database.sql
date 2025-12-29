@@ -1,4 +1,4 @@
-CREATE TABLE `users` (
+CREATE TABLE users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     email VARCHAR(255) NOT NULL UNIQUE,
     username VARCHAR(100) NOT NULL UNIQUE,
@@ -84,5 +84,61 @@ CREATE TABLE email_verification (
     expires_at TIMESTAMP NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+ALTER TABLE users ADD COLUMN email_verified BOOLEAN DEFAULT FALSE;
+ALTER TABLE client ADD COLUMN city VARCHAR(100);
+ALTER TABLE client ADD COLUMN postal_code INT;
+CREATE TABLE email_verification (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    verification_code VARCHAR(6) NOT NULL,
+    expiration_time DATETIME NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+DELETE FROM users WHERE email = 'walidchemat@gmail.com';
+ALTER TABLE email_verification 
+CHANGE verification_code verification_code_hash VARCHAR(255) NOT NULL;
+
+
+
+-- 1. Drop the bad table if it exists
+DROP TABLE IF EXISTS email_verification;
+
+-- 2. Create the correct table with ALL required columns
+CREATE TABLE email_verification (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    verification_code_hash VARCHAR(255) NOT NULL, -- Fixed: Matches Java's "Hash" expectation
+    expiration_time DATETIME NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Fixed: The missing column causing your error
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- 1. Drop the bad table if it exists
+DROP TABLE IF EXISTS email_verification;
+
+-- 2. Create the correct table with ALL required columns
+CREATE TABLE email_verification (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    verification_code_hash VARCHAR(255) NOT NULL, -- Fixed: Matches Java's "Hash" expectation
+    expiration_time DATETIME NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Fixed: The missing column causing your error
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+DELETE FROM users WHERE email = 'hanadjib70@gmail.com';
+-- 1. Wipe the mismatching table
+DROP TABLE IF EXISTS email_verification;
+
+-- 2. Create the PERFECT table matching your Java code
+CREATE TABLE email_verification (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    verification_code_hash VARCHAR(255) NOT NULL,
+    expires_at DATETIME NOT NULL,                   -- Fixed: Renamed from 'expiration_time' to match Java
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Fixed: Java asked for this earlier
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
