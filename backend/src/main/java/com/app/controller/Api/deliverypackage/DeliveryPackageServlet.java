@@ -1,4 +1,4 @@
-package com.app.controller.Api;
+package com.app.controller.Api.deliverypackage;
 
 import jakarta.servlet.*;
 import jakarta.servlet.http.*;
@@ -66,7 +66,7 @@ public class DeliveryPackageServlet extends HttpServlet {
     }
 
     /**
-     * POST /api/deliveries - Create new delivery
+     * POST /api/packages - Create new package
      */
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp)
@@ -116,66 +116,66 @@ public class DeliveryPackageServlet extends HttpServlet {
      * PUT /api/packages/{id} - Update package
      */
     @Override
-protected void doPut(HttpServletRequest req, HttpServletResponse resp)
-        throws ServletException, IOException {
-    resp.setContentType("application/json");
-    resp.setCharacterEncoding("UTF-8");
-    PrintWriter out = resp.getWriter();
+    protected void doPut(HttpServletRequest req, HttpServletResponse resp)
+            throws ServletException, IOException {
+        resp.setContentType("application/json");
+        resp.setCharacterEncoding("UTF-8");
+        PrintWriter out = resp.getWriter();
 
-    try {
-        String pathInfo = req.getPathInfo();
-        if (pathInfo == null || pathInfo.equals("/")) {
+        try {
+            String pathInfo = req.getPathInfo();
+            if (pathInfo == null || pathInfo.equals("/")) {
+                resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                out.print("{\"error\": \"Package ID is required\"}");
+                return;
+            }
+
+            String[] splits = pathInfo.split("/");
+            int id = Integer.parseInt(splits[1]);
+
+            // 1. FETCH EXISTING DATA FIRST (Crucial Step!)
+            DeliveryPackage existing = packageDAO.findById(id);
+            
+            if (existing == null) {
+                resp.setStatus(HttpServletResponse.SC_NOT_FOUND);
+                out.print("{\"error\": \"Package not found\"}");
+                return;
+            }
+
+            // 2. Read new updates
+            BufferedReader reader = req.getReader();
+            DeliveryPackage updates = gson.fromJson(reader, DeliveryPackage.class);
+
+            // 3. UPDATE ONLY WHAT IS NOT NULL
+            // This prevents overwriting existing data with nulls
+            if (updates.getStatus() != null) existing.setStatus(updates.getStatus());
+            if (updates.getVehicleTypeNeeded() != null) existing.setVehicleTypeNeeded(updates.getVehicleTypeNeeded());
+            if (updates.getAddressSource() != null) existing.setAddressSource(updates.getAddressSource());
+            if (updates.getAddressDestination() != null) existing.setAddressDestination(updates.getAddressDestination());
+            if (updates.getDescription() != null) existing.setDescription(updates.getDescription());
+            if (updates.getWeight() > 0) existing.setWeight(updates.getWeight());
+            if (updates.getPrice() > 0) existing.setPrice(updates.getPrice());
+
+            // 4. SAVE THE MERGED OBJECT
+            packageDAO.update(existing);
+
+            String json = gson.toJson(existing);
+            resp.setStatus(HttpServletResponse.SC_OK);
+            out.print(json);
+
+        } catch (SQLException e) {
+            resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            out.print("{\"error\": \"" + e.getMessage() + "\"}");
+            e.printStackTrace();
+        } catch (NumberFormatException e) {
             resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            out.print("{\"error\": \"Package ID is required\"}");
-            return;
+            out.print("{\"error\": \"Invalid ID format\"}");
+        } catch (Exception e) {
+            resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            out.print("{\"error\": \"Invalid request data: " + e.getMessage() + "\"}");
+            e.printStackTrace();
         }
-
-        String[] splits = pathInfo.split("/");
-        int id = Integer.parseInt(splits[1]);
-
-        // 1. FETCH EXISTING DATA FIRST (Crucial Step!)
-        DeliveryPackage existing = packageDAO.findById(id);
-        
-        if (existing == null) {
-            resp.setStatus(HttpServletResponse.SC_NOT_FOUND);
-            out.print("{\"error\": \"Package not found\"}");
-            return;
-        }
-
-        // 2. Read new updates
-        BufferedReader reader = req.getReader();
-        DeliveryPackage updates = gson.fromJson(reader, DeliveryPackage.class);
-
-        // 3. UPDATE ONLY WHAT IS NOT NULL
-        // This prevents overwriting existing data with nulls
-        if (updates.getStatus() != null) existing.setStatus(updates.getStatus());
-        if (updates.getVehicleTypeNeeded() != null) existing.setVehicleTypeNeeded(updates.getVehicleTypeNeeded());
-        if (updates.getAddressSource() != null) existing.setAddressSource(updates.getAddressSource());
-        if (updates.getAddressDestination() != null) existing.setAddressDestination(updates.getAddressDestination());
-        if (updates.getDescription() != null) existing.setDescription(updates.getDescription());
-        if (updates.getWeight() > 0) existing.setWeight(updates.getWeight());
-        if (updates.getPrice() > 0) existing.setPrice(updates.getPrice());
-
-        // 4. SAVE THE MERGED OBJECT
-        packageDAO.update(existing);
-
-        String json = gson.toJson(existing);
-        resp.setStatus(HttpServletResponse.SC_OK);
-        out.print(json);
-
-    } catch (SQLException e) {
-        resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-        out.print("{\"error\": \"" + e.getMessage() + "\"}");
-        e.printStackTrace();
-    } catch (NumberFormatException e) {
-        resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-        out.print("{\"error\": \"Invalid ID format\"}");
-    } catch (Exception e) {
-        resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-        out.print("{\"error\": \"Invalid request data: " + e.getMessage() + "\"}");
-        e.printStackTrace();
     }
-}
 
     /**
      * DELETE /api/packages/{id} - Delete package
@@ -192,7 +192,7 @@ protected void doPut(HttpServletRequest req, HttpServletResponse resp)
 
             if (pathInfo == null || pathInfo.equals("/")) {
                 resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-                out.print("{\"error\": \"Delivery ID is required\"}");
+                out.print("{\"error\": \"Package ID is required\"}");
                 return;
             }
 
