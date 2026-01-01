@@ -55,4 +55,4 @@ frontend/.env.production.local
 frontend/.DS_Store
 
 
-backend.session.sql
+*.session.sql
