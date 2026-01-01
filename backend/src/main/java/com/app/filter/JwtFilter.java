@@ -29,13 +29,21 @@ public class JwtFilter implements Filter {
                 }
             }
         }
-
+        String path = request.getRequestURI();
         if (token != null) {
             DecodedJWT jwt = JWTUtil.validateToken(token);
+            String role = JWTUtil.getRole(jwt);
 
             if (jwt != null) {
                 request.setAttribute("userId", JWTUtil.getUserId(jwt));
                 request.setAttribute("userRole", JWTUtil.getRole(jwt));
+                //TODO : Add role-based access control here
+                // if((path.startsWith("/api/admin/") || path.startsWith("/api/packages")) && !"ADMIN".equals(role)) {
+                //     response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                //     response.setContentType("application/json");
+                //     response.getWriter().write("{\"error\":\"Forbidden\"}");
+                //     return;
+                // }
                 chain.doFilter(request, response);
                 return;
             }

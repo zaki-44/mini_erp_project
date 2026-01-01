@@ -39,8 +39,8 @@ public class RegisterServlet extends HttpServlet {
                         return;
             }
             if(userDAO.usernameExists(username)){
-                        out.println("{\"status\": \"fail\", \"message\": \"Username already in use\"}");
-                        return;
+                       out.println("{\"status\": \"fail\", \"message\": \"Username already in use\"}");
+                        return; 
             }
         }
         catch(Exception e){
@@ -74,7 +74,12 @@ public class RegisterServlet extends HttpServlet {
             String serialNumber = jsonObject.get("serialnumber").getAsString();
             DelivererDAO delivererDAO = new DelivererDAO();
             Deliverer newDeliverer = new Deliverer(newUser, city, role, vehicleType, true, maxWeight, 0.0, serialNumber, 0.0);
+            
             try{
+                if(delivererDAO.serialNumberExists(serialNumber)){
+                    out.println("{\"status\": \"fail\", \"message\": \"Serial number already in use\"}");
+                    return;
+                }
                 delivererDAO.insert(newDeliverer);
                 EmailVerificationDAO verificationDAO = new EmailVerificationDAO();
                 verificationDAO.saveVerificationCode(newDeliverer.getId(), code);

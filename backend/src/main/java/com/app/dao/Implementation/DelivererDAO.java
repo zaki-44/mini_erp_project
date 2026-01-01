@@ -310,6 +310,34 @@ public class DelivererDAO implements DAO<Deliverer>{
             }
         }
         return deliverers;
-    }   
+    }
+    public boolean serialNumberExists(String serialNumber) throws SQLException {
+        String sql = "SELECT id FROM deliverer WHERE serial_number=?";
+        try (Connection conn = Database.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
 
+            stmt.setString(1, serialNumber);
+            try (ResultSet rs = stmt.executeQuery()) {
+                return rs.next();
+            }
+        }
+    }
+    public List<Deliverer> getPendingDeliverers() throws SQLException {
+        List<Deliverer> deliverers = new ArrayList<>();
+        String sql = "SELECT u.*, d.* FROM users u JOIN deliverer d ON u.id = d.id WHERE u.email_verified = FALSE";
+        try (Connection conn = Database.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+
+            while (rs.next()) {
+                Deliverer deliverer = mapDeliverer(rs);
+                deliverers.add(deliverer);
+            }
+        }
+        catch(SQLException e){
+            System.out.println("Error getting pending deliverers: " + e.getMessage());
+            throw e;
+        }
+        return deliverers;
+    }
 }
