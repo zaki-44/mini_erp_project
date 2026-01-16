@@ -1,4 +1,4 @@
-package com.app.controller.Auth;
+package com.app.controller.auth;
 
 import jakarta.servlet.*;
 import jakarta.servlet.http.*;

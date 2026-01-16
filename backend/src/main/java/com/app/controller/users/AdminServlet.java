@@ -1,4 +1,4 @@
-package com.app.controller.Api.admin;
+package com.app.controller.users;
 
 import com.app.service.DelivererService;
 import com.app.model.users.Deliverer;

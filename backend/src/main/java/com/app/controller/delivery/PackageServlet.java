@@ -1,4 +1,4 @@
-package com.app.controller.Api.deliverypackage;
+package com.app.controller.delivery;
 
 import jakarta.servlet.*;
 import jakarta.servlet.http.*;
@@ -13,7 +13,7 @@ import com.app.model.delivery.Package;
 import com.app.model.enums.PackageStatus;
 
 @WebServlet("/api/packages/*")
-public class DeliveryPackageServlet extends HttpServlet {
+public class PackageServlet extends HttpServlet {
 
     private PackageService packageService;
     private Gson gson;

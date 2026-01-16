@@ -1,4 +1,4 @@
-package com.app.controller.Test;
+package com.app.controller.test;
 import jakarta.servlet.*;
 import jakarta.servlet.http.*;
 import jakarta.servlet.annotation.*;

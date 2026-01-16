@@ -1,4 +1,4 @@
-package com.app.controller.Test;
+package com.app.controller.test;
 
 import com.app.service.ClientService;
 import com.app.service.DelivererService;
