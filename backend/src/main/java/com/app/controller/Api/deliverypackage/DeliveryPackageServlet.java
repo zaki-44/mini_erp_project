@@ -8,9 +8,9 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.List;
 import com.google.gson.Gson;
-import com.erp.service.PackageService;
-import com.erp.model.delivery.Package;
-import com.erp.model.enums.PackageStatus;
+import com.app.service.PackageService;
+import com.app.model.delivery.Package;
+import com.app.model.enums.PackageStatus;
 
 @WebServlet("/api/packages/*")
 public class DeliveryPackageServlet extends HttpServlet {

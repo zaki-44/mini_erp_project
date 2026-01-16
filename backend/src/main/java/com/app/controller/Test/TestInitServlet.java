@@ -1,14 +1,14 @@
 package com.app.controller.Test;
 
-import com.erp.service.ClientService;
-import com.erp.service.DelivererService;
-import com.erp.service.PackageService;
-import com.erp.model.user.Client;
-import com.erp.model.user.Deliverer;
-import com.erp.model.delivery.Package;
-import com.erp.model.enums.UserRole;
-import com.erp.model.enums.VehicleType;
-import com.erp.model.enums.PackageStatus;
+import com.app.service.ClientService;
+import com.app.service.DelivererService;
+import com.app.service.PackageService;
+import com.app.model.users.Client;
+import com.app.model.users.Deliverer;
+import com.app.model.delivery.Package;
+import com.app.model.enums.UserRole;
+import com.app.model.enums.VehicleType;
+import com.app.model.enums.PackageStatus;
 
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.*;

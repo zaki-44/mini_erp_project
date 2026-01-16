@@ -7,16 +7,16 @@ import java.io.*;
 import java.sql.Timestamp;
 import java.util.Calendar;
 
-import com.erp.service.UserService;
-import com.erp.service.ClientService;
-import com.erp.service.DelivererService;
-import com.erp.model.user.User;
-import com.erp.model.user.Client;
-import com.erp.model.user.Deliverer;
-import com.erp.model.enums.UserRole;
-import com.erp.model.enums.VehicleType;
-import com.erp.util.JWTUtil;
-import com.erp.util.PasswordUtils;
+import com.app.service.UserService;
+import com.app.service.ClientService;
+import com.app.service.DelivererService;
+import com.app.model.users.User;
+import com.app.model.users.Client;
+import com.app.model.users.Deliverer;
+import com.app.model.enums.UserRole;
+import com.app.model.enums.VehicleType;
+import com.app.util.JWTUtil;
+import com.app.util.PasswordUtils;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 
@@ -93,8 +93,11 @@ public class AuthServlet extends HttpServlet {
             String phoneNumber = jsonObject.get("phonenumber").getAsString();
             UserRole role = UserRole.valueOf(jsonObject.get("role").getAsString().toUpperCase());
             
-            String hashedPassword = PasswordUtils.hashPassword(password);
+            String hashedPassword = PasswordUtils.hashPassword(password, email);
             String verificationCode = JWTUtil.generateCode();
+            Calendar calendar = Calendar.getInstance();
+            calendar.add(Calendar.MINUTE, 15);
+            Timestamp expiresAt = new Timestamp(calendar.getTimeInMillis());
             
             // Check if user exists
             if (userService.getUserByEmail(email) != null) {
@@ -115,7 +118,7 @@ public class AuthServlet extends HttpServlet {
                         phoneNumber, false, new Timestamp(System.currentTimeMillis()),
                         address, city, postalCode);
                 
-                clientService.registerClient(client, verificationCode);
+                clientService.registerClient(client, verificationCode, expiresAt);
                 sendSuccess(resp, "Client registered successfully. Please check your email for verification code.");
                 
             } else if (role == UserRole.DELIVERER) {
@@ -134,7 +137,7 @@ public class AuthServlet extends HttpServlet {
                         phoneNumber, false, new Timestamp(System.currentTimeMillis()),
                         vehicleType, maxWeight, 0, serialNumber, city, true, false);
                 
-                delivererService.registerDeliverer(deliverer, verificationCode);
+                delivererService.registerDeliverer(deliverer, verificationCode, expiresAt);
                 sendSuccess(resp, "Deliverer registered successfully. Please check your email for verification code.");
                 
             } else {
@@ -167,7 +170,7 @@ public class AuthServlet extends HttpServlet {
             }
             
             // Generate JWT token
-            String token = JWTUtil.generateToken(user.getId(), user.getEmail(), user.getRole());
+            String token = JWTUtil.generateToken(user.getId(), user.getRole());
             
             JsonObject response = new JsonObject();
             response.addProperty("status", "success");
@@ -212,13 +215,13 @@ public class AuthServlet extends HttpServlet {
             
             String email = jsonObject.get("email").getAsString();
             
-            boolean sent = userService.resendVerificationCode(email);
+            String verificationCode = JWTUtil.generateCode();
+            Calendar calendar = Calendar.getInstance();
+            calendar.add(Calendar.MINUTE, 15);
+            Timestamp expiresAt = new Timestamp(calendar.getTimeInMillis());
             
-            if (sent) {
-                sendSuccess(resp, "Verification code resent successfully");
-            } else {
-                sendError(resp, "Failed to resend verification code. User may not exist or already verified.");
-            }
+            userService.resendVerificationCode(email, verificationCode, expiresAt);
+            sendSuccess(resp, "Verification code resent successfully");
             
         } catch (Exception e) {
             e.printStackTrace();

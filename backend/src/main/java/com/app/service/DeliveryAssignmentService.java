@@ -4,17 +4,17 @@ import java.sql.Timestamp;
 import java.util.List;
 import java.util.Map;
 
-import com.erp.dao.implementation.delivery.AffectationDAO;
-import com.erp.dao.implementation.user.DelivererDAO;
-import com.erp.dao.implementation.user.ClientDAO;
-import com.erp.dao.implementation.delivery.PackageDAO;
-import com.erp.model.delivery.Package;
-import com.erp.model.enums.AffectationStatus;
-import com.erp.model.enums.PackageStatus;
-import com.erp.model.enums.VehicleType;
-import com.erp.model.delivery.Affectation;
-import com.erp.model.user.Client;
-import com.erp.model.user.Deliverer;
+import com.app.dao.implementation.delivery.AffectationDAO;
+import com.app.dao.implementation.users.DelivererDAO;
+import com.app.dao.implementation.users.ClientDAO;
+import com.app.dao.implementation.delivery.PackageDAO;
+import com.app.model.delivery.Package;
+import com.app.model.enums.AffectationStatus;
+import com.app.model.enums.PackageStatus;
+import com.app.model.enums.VehicleType;
+import com.app.model.delivery.Affectation;
+import com.app.model.users.Client;
+import com.app.model.users.Deliverer;
 
 public class DeliveryAssignmentService {
     private DelivererDAO delivererDAO;

@@ -1,7 +1,7 @@
 package com.app.controller.Api.admin;
 
-import com.erp.service.DelivererService;
-import com.erp.model.user.Deliverer;
+import com.app.service.DelivererService;
+import com.app.model.users.Deliverer;
 import com.google.gson.Gson;
 
 import jakarta.servlet.ServletException;

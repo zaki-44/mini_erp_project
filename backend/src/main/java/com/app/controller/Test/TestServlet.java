@@ -6,11 +6,11 @@ import jakarta.servlet.annotation.*;
 import java.io.*;
 import java.util.List;
 import com.google.gson.Gson;
-import com.erp.model.enums.PackageStatus;
+import com.app.model.enums.PackageStatus;
 import com.app.service.DeliveryAssignmentService;
-import com.erp.service.PackageService;
-import com.erp.model.delivery.Package;
-import com.erp.model.user.Deliverer;
+import com.app.service.PackageService;
+import com.app.model.delivery.Package;
+import com.app.model.users.Deliverer;
 
 
 @WebServlet("/api/database/test")
