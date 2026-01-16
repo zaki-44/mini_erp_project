@@ -6,14 +6,12 @@ import java.io.*;
 import java.sql.Timestamp;
 import java.util.List;
 
-import com.erp.dao.implementation.user.ClientDAO;
-import com.erp.dao.implementation.user.DelivererDAO;
-import com.erp.dao.implementation.user.UserDAO;
-import com.erp.dao.implementation.verification.VerificationCodeDAO;
+import com.erp.service.UserService;
+import com.erp.service.ClientService;
+import com.erp.service.DelivererService;
 import com.erp.model.user.User;
 import com.erp.model.user.Client;
 import com.erp.model.user.Deliverer;
-import com.erp.model.verification.VerificationCode;
 import com.erp.model.enums.UserRole;
 import com.erp.model.enums.VehicleType;
 import com.app.util.EmailService;
@@ -24,6 +22,17 @@ import com.google.gson.JsonObject;
 
 @WebServlet("/signup")
 public class RegisterServlet extends HttpServlet {
+    private UserService userService;
+    private ClientService clientService;
+    private DelivererService delivererService;
+    
+    @Override
+    public void init() {
+        userService = new UserService();
+        clientService = new ClientService();
+        delivererService = new DelivererService();
+    }
+    
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         Gson gson = new Gson();
@@ -39,14 +48,14 @@ public class RegisterServlet extends HttpServlet {
         UserRole role = UserRole.valueOf(jsonObject.get("role").getAsString().toUpperCase());
         User newUser = new User(0, email , username, password, firstname, lastname, phoneNumber, false, role, new Timestamp(System.currentTimeMillis()));
         String code = JWTUtil.generateCode();
+        Timestamp expiresAt = new Timestamp(System.currentTimeMillis() + 15 * 60 * 1000);
         PrintWriter out = resp.getWriter();
-        UserDAO userDAO = new UserDAO();
         try{
-            if(userDAO.findByEmail(email) != null){
+            if(userService.findByEmail(email) != null){
                         out.println("{\"status\": \"fail\", \"message\": \"Email already in use\"}");
                         return;
             }
-            if(userDAO.findByUsername(username) != null){
+            if(userService.findByUsername(username) != null){
                        out.println("{\"status\": \"fail\", \"message\": \"Username already in use\"}");
                         return; 
             }
@@ -60,16 +69,9 @@ public class RegisterServlet extends HttpServlet {
             String address = jsonObject.get("address").getAsString();
             String city = jsonObject.get("city").getAsString();
             int postalCode = jsonObject.get("postalcode").getAsInt();
-            ClientDAO clientDAO = new ClientDAO();
             Client newClient = new Client(newUser, address, city, postalCode);
             try{
-                
-                clientDAO.insert(newClient);
-                VerificationCodeDAO verificationDAO = new VerificationCodeDAO();
-                VerificationCode verificationCode = new VerificationCode(newClient.getEmail(), code,
-                    new java.sql.Timestamp(System.currentTimeMillis()),
-                    new java.sql.Timestamp(System.currentTimeMillis() + 15 * 60 * 1000));
-                verificationDAO.insert(verificationCode);
+                clientService.registerClient(newClient, code, expiresAt);
                 EmailService.sendVerificationEmail(newClient.getEmail() , code);
                 out.println("{\"status\": \"success\", \"message\": \"Client registered successfully\"}");
             }
@@ -83,11 +85,10 @@ public class RegisterServlet extends HttpServlet {
             String city = jsonObject.get("city").getAsString();
             double maxWeight = jsonObject.get("maxweight").getAsDouble();
             String serialNumber = jsonObject.get("serialnumber").getAsString();
-            DelivererDAO delivererDAO = new DelivererDAO();
             
             try {
                 // Check if serial number exists by querying deliverers
-                List<Deliverer> allDeliverers = delivererDAO.findAll();
+                List<Deliverer> allDeliverers = delivererService.getAllDeliverers();
                 boolean serialExists = allDeliverers.stream()
                     .anyMatch(d -> d.getSerialNumber().equals(serialNumber));
                 
@@ -104,12 +105,7 @@ public class RegisterServlet extends HttpServlet {
             Deliverer newDeliverer = new Deliverer(newUser, vehicleType, (float)maxWeight, 0.0f, serialNumber, city, true, false);
             
             try{
-                delivererDAO.insert(newDeliverer);
-                VerificationCodeDAO verificationDAO = new VerificationCodeDAO();
-                VerificationCode verificationCode = new VerificationCode(newDeliverer.getEmail(), code,
-                    new java.sql.Timestamp(System.currentTimeMillis()),
-                    new java.sql.Timestamp(System.currentTimeMillis() + 15 * 60 * 1000));
-                verificationDAO.insert(verificationCode);
+                delivererService.registerDeliverer(newDeliverer, code, expiresAt);
                 EmailService.sendEmail(newDeliverer.getEmail() , "Verification Email" , "Your verification code is : " + code);
                 out.println("{\"status\": \"success\", \"message\": \"Deliverer registered successfully\"}");
             }

@@ -8,22 +8,28 @@ import java.util.List;
 import com.google.gson.Gson;
 import com.erp.model.enums.PackageStatus;
 import com.app.service.DeliveryAssignmentService;
-import com.erp.dao.implementation.delivery.PackageDAO;
+import com.erp.service.PackageService;
 import com.erp.model.delivery.Package;
 import com.erp.model.user.Deliverer;
 
 
 @WebServlet("/api/database/test")
 public class TestServlet extends HttpServlet {
+    private PackageService packageService;
+    
+    @Override
+    public void init() {
+        packageService = new PackageService();
+    }
+    
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         DeliveryAssignmentService assignmentService = new DeliveryAssignmentService();
         Integer id = Integer.parseInt(req.getParameter("id"));
-        PackageDAO packageDAO = new PackageDAO();
         Deliverer deliverer = assignmentService.autoAssignPackage(id);
         Package pkg = null;
         try{
-            pkg = packageDAO.findById(id);
+            pkg = packageService.findById(id);
         }
         catch(Exception e){
             System.out.println("Error fetching package: " + e.getMessage());
@@ -45,22 +51,19 @@ public class TestServlet extends HttpServlet {
         try {
             Gson gson = new Gson();
 
-            // Create PackageDAO instance
-            PackageDAO packageDAO = new PackageDAO();
-
             // Create a new Package
-            Package pkg = packageDAO.findAll().get(0);
+            Package pkg = packageService.getAllPackages().get(0);
 
             // Print after insert (ID should be set)
             System.out.println("After insert: ID=" + pkg.getId());
 
             // Update the package
             pkg.setStatus(PackageStatus.ASSIGNED);
-            packageDAO.update(pkg);
+            packageService.updatePackage(pkg);
             System.out.println("After update: Status=" + pkg.getStatus());
 
             // Retrieve all packages
-            List<Package> packages = packageDAO.findAll();
+            List<Package> packages = packageService.getAllPackages();
 
             // Convert list to JSON
             String json = gson.toJson(packages);

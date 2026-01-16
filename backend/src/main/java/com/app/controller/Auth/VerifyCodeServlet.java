@@ -4,14 +4,18 @@ import jakarta.servlet.http.*;
 import jakarta.servlet.annotation.*;
 import java.io.*;
 
-import com.erp.dao.implementation.verification.VerificationCodeDAO;
-import com.erp.dao.implementation.user.UserDAO;
+import com.erp.service.UserService;
 import com.google.gson.*;
 
-import com.erp.model.user.User;
-import com.erp.model.verification.VerificationCode;
 @WebServlet("/verifycode")
 public class VerifyCodeServlet extends HttpServlet {
+    private UserService userService;
+    
+    @Override
+    public void init() {
+        userService = new UserService();
+    }
+    
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         Gson gson = new Gson();
@@ -21,31 +25,11 @@ public class VerifyCodeServlet extends HttpServlet {
         PrintWriter out = resp.getWriter();
         String email = jsonObject.get("email").getAsString();
         String code = jsonObject.get("code").getAsString();
-        UserDAO userDAO = new UserDAO();
         try{
-            User user = userDAO.findByEmail(email);
-            if(user == null) {
-                out.println("{\"status\": \"fail\", \"message\": \"User not found\"}");
-                return;
-            }
+            boolean isVerified = userService.verifyEmail(email, code);
             
-            VerificationCodeDAO verificationDAO = new VerificationCodeDAO();
-            VerificationCode verificationCode = verificationDAO.findByEmail(email);
-            
-            if(verificationCode == null) {
-                out.println("{\"status\": \"fail\", \"message\": \"Verification code not found\"}");
-                return;
-            }
-            
-            // Check if code matches and is not expired
-            boolean isValid = verificationCode.getCode().equals(code) && 
-                             verificationCode.getExpiresAt().after(new java.sql.Timestamp(System.currentTimeMillis()));
-            
-            if(isValid){
-                user.setEmailVerified(true);
-                userDAO.update(user);
+            if(isVerified){
                 out.println("{\"status\": \"success\", \"message\": \"Email verified successfully\"}");
-                verificationDAO.delete(email);
             }
             else{
                 out.println("{\"status\": \"fail\", \"message\": \"Invalid or expired verification code\"}");

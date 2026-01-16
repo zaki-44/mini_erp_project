@@ -1,6 +1,6 @@
 package com.app.controller.Auth;
 
-import com.erp.dao.implementation.user.UserDAO;
+import com.erp.service.UserService;
 import com.erp.model.user.User;
 import com.app.util.JWTUtil;
 import com.google.gson.Gson;
@@ -16,7 +16,7 @@ import java.sql.SQLException;
 @WebServlet("/login")
 public class LoginServlet extends HttpServlet {
 
-    private UserDAO userDAO;
+    private UserService userService;
     private Gson gson;
 
     // Helper class to catch the incoming JSON
@@ -27,7 +27,7 @@ public class LoginServlet extends HttpServlet {
 
     @Override
     public void init() {
-        userDAO = new UserDAO();
+        userService = new UserService();
         gson = new Gson();
     }
     @Override
@@ -51,7 +51,7 @@ public class LoginServlet extends HttpServlet {
             LoginRequest loginRequest = gson.fromJson(sb.toString(), LoginRequest.class);
 
             // 3. Find User
-            User user = userDAO.findByEmail(loginRequest.email);
+            User user = userService.findByEmail(loginRequest.email);
 
             // 4. Validate Password
             if (user != null && user.getPasswordHash().equals(loginRequest.password) && user.isEmailVerified()) {

@@ -1,8 +1,8 @@
 package com.app.controller.Test;
 
-import com.erp.dao.implementation.user.ClientDAO;
-import com.erp.dao.implementation.user.DelivererDAO;
-import com.erp.dao.implementation.delivery.PackageDAO;
+import com.erp.service.ClientService;
+import com.erp.service.DelivererService;
+import com.erp.service.PackageService;
 import com.erp.model.user.Client;
 import com.erp.model.user.Deliverer;
 import com.erp.model.delivery.Package;
@@ -16,20 +16,26 @@ import java.sql.Timestamp;
 
 @WebServlet("/api/database/init")
 public class TestInitServlet extends HttpServlet {
+    private ClientService clientService;
+    private DelivererService delivererService;
+    private PackageService packageService;
+    
+    @Override
+    public void init() {
+        clientService = new ClientService();
+        delivererService = new DelivererService();
+        packageService = new PackageService();
+    }
+    
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) {
-        // Initialize DAOs
-        ClientDAO clientDAO = new ClientDAO();
-        DelivererDAO delivererDAO = new DelivererDAO();
-        PackageDAO packageDAO = new PackageDAO();
-
         // 1. Create Clients
         Client client1 = new Client(0, "alice@example.com", "alice_s", "hash1",
                 "Alice", "Smith", "1234567890", true, new Timestamp(System.currentTimeMillis()),
                 "123 Main St", "Metropolis", 12345);
 
         Client client2 = new Client(0, "bob@example.com", "bob_j", "hash2",
-                "Bob", "Johnson", "0987654321", false, new Timestamp(System.currentTimeMillis()),
+                "Bob", "Johnson", "0987654321", true, new Timestamp(System.currentTimeMillis()),
                 "456 Elm St", "Gotham", 54321);
         // 2. Create Deliverers (Updated with: city, currentLoad, serialNumber, and rate)
         // Bike: Max 15kg, Current 0kg, Rate 5.0
@@ -61,13 +67,14 @@ public class TestInitServlet extends HttpServlet {
                 PackageStatus.CREATED, now);
 
         try {
-            // Note: In your ClientDAO/DelivererDAO, the insert handles the User table too
-            clientDAO.insert(client1);
-            clientDAO.insert(client2);
+            // Register clients (with dummy verification codes since they're already verified)
+            Timestamp expiresAt = new Timestamp(System.currentTimeMillis() + 15 * 60 * 1000);
+            clientService.registerClient(client1, "DUMMY1", expiresAt);
+            clientService.registerClient(client2, "DUMMY2", expiresAt);
             
-            delivererDAO.insert(deliverer1);
-            delivererDAO.insert(deliverer2);
-            delivererDAO.insert(deliverer3);
+            delivererService.registerDeliverer(deliverer1, "DUMMY3", expiresAt);
+            delivererService.registerDeliverer(deliverer2, "DUMMY4", expiresAt);
+            delivererService.registerDeliverer(deliverer3, "DUMMY5", expiresAt);
 
             // Re-fetch client IDs if they were generated or set manually for the packages
             package1.setClientSourceId(client1.getId());
@@ -76,8 +83,8 @@ public class TestInitServlet extends HttpServlet {
             package2.setClientSourceId(client2.getId());
             package2.setClientDestinationId(client1.getId());
 
-            packageDAO.insert(package1);
-            packageDAO.insert(package2);
+            packageService.createPackage(package1);
+            packageService.createPackage(package2);
 
             resp.getWriter().write("Database initialized with sample weight-management data.");
         } catch (Exception e) {

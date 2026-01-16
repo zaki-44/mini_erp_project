@@ -1,7 +1,6 @@
 package com.app.controller.Api.admin;
 
-import com.erp.dao.implementation.user.DelivererDAO;
-import com.erp.dao.implementation.user.UserDAO;
+import com.erp.service.DelivererService;
 import com.erp.model.user.Deliverer;
 import com.google.gson.Gson;
 
@@ -17,13 +16,11 @@ import java.util.List;
 @WebServlet("/api/admin/*")
 public class AdminServlet extends HttpServlet {
 
-    private UserDAO userDAO;
-    private DelivererDAO delivererDAO;
+    private DelivererService delivererService;
     private Gson gson;
 
     public void init() {
-        userDAO = new UserDAO(); 
-        delivererDAO = new DelivererDAO();
+        delivererService = new DelivererService();
         gson = new Gson();
     }
 
@@ -37,7 +34,7 @@ public class AdminServlet extends HttpServlet {
         if ("/pending-deliverers".equals(pathInfo)) {
             try{
                 // Get all deliverers and filter for those not approved
-                List<Deliverer> all = delivererDAO.findAll();
+                List<Deliverer> all = delivererService.getAllDeliverers();
                 List<Deliverer> pending = all.stream()
                     .filter(d -> !d.isApproved())
                     .collect(java.util.stream.Collectors.toList());
@@ -65,16 +62,9 @@ public class AdminServlet extends HttpServlet {
             if (idParam != null) {
                 try {
                     int userId = Integer.parseInt(idParam);
-                    // Get the deliverer and update the isApproved flag
-                    Deliverer deliverer = delivererDAO.findById(userId);
-                    if(deliverer != null) {
-                        deliverer.setApproved(true);
-                        delivererDAO.update(deliverer);
-                        resp.getWriter().write("{\"message\": \"Deliverer Approved Successfully\"}");
-                    } else {
-                        resp.setStatus(HttpServletResponse.SC_NOT_FOUND);
-                        resp.getWriter().write("{\"error\": \"Deliverer not found\"}");
-                    }
+                    // Approve the deliverer using the service
+                    delivererService.approveDeliverer(userId);
+                    resp.getWriter().write("{\"message\": \"Deliverer Approved Successfully\"}");
                 } catch (NumberFormatException e) {
                     resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
                     resp.getWriter().write("{\"error\": \"Invalid ID format\"}");

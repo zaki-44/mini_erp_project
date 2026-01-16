@@ -8,15 +8,21 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.List;
 import com.google.gson.Gson;
-import com.erp.dao.implementation.delivery.PackageDAO;
+import com.erp.service.PackageService;
 import com.erp.model.delivery.Package;
 import com.erp.model.enums.PackageStatus;
 
 @WebServlet("/api/packages/*")
 public class DeliveryPackageServlet extends HttpServlet {
 
-    private PackageDAO packageDAO = new PackageDAO();
-    private Gson gson = new Gson();
+    private PackageService packageService;
+    private Gson gson;
+    
+    @Override
+    public void init() {
+        packageService = new PackageService();
+        gson = new Gson();
+    }
 
     /**
      * GET /api/packages - Get all packages
@@ -34,7 +40,7 @@ public class DeliveryPackageServlet extends HttpServlet {
 
             if (pathInfo == null || pathInfo.equals("/")) {
                 // Get all packages
-                List<Package> packages = packageDAO.findAll();
+                List<Package> packages = packageService.getAllPackages();
                 String json = gson.toJson(packages);
                 resp.setStatus(HttpServletResponse.SC_OK);
                 out.print(json);
@@ -43,7 +49,7 @@ public class DeliveryPackageServlet extends HttpServlet {
                 String[] splits = pathInfo.split("/");
                 if (splits.length > 1) {
                     int id = Integer.parseInt(splits[1]);
-                    Package pkg = packageDAO.findById(id);
+                    Package pkg = packageService.findById(id);
 
                     if (pkg != null) {
                         String json = gson.toJson(pkg);
@@ -95,7 +101,7 @@ public class DeliveryPackageServlet extends HttpServlet {
             }
 
             // Insert into database
-            packageDAO.insert(pkg);
+            packageService.createPackage(pkg);
             // Return created package
             String json = gson.toJson(pkg);
             resp.setStatus(HttpServletResponse.SC_CREATED);
@@ -134,7 +140,7 @@ public class DeliveryPackageServlet extends HttpServlet {
             int id = Integer.parseInt(splits[1]);
 
             // 1. FETCH EXISTING DATA FIRST (Crucial Step!)
-            Package existing = packageDAO.findById(id);
+            Package existing = packageService.findById(id);
             
             if (existing == null) {
                 resp.setStatus(HttpServletResponse.SC_NOT_FOUND);
@@ -157,7 +163,7 @@ public class DeliveryPackageServlet extends HttpServlet {
             if (updates.getPrice() > 0) existing.setPrice(updates.getPrice());
 
             // 4. SAVE THE MERGED OBJECT
-            packageDAO.update(existing);
+            packageService.updatePackage(existing);
 
             String json = gson.toJson(existing);
             resp.setStatus(HttpServletResponse.SC_OK);
@@ -200,7 +206,7 @@ public class DeliveryPackageServlet extends HttpServlet {
             int id = Integer.parseInt(splits[1]);
 
             // Check if package exists
-            Package existing = packageDAO.findById(id);
+            Package existing = packageService.findById(id);
             if (existing == null) {
                 resp.setStatus(HttpServletResponse.SC_NOT_FOUND);
                 out.print("{\"error\": \"Package not found\"}");
@@ -208,7 +214,7 @@ public class DeliveryPackageServlet extends HttpServlet {
             }
 
             // Delete from database
-            packageDAO.delete(id);
+            packageService.deletePackage(id);
 
             resp.setStatus(HttpServletResponse.SC_OK);
             out.print("{\"message\": \"Package deleted successfully\"}");

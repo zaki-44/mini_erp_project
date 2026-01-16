@@ -121,4 +121,19 @@ public class UserService {
     public List<User> getAllUsers() throws SQLException {
         return userDAO.findAll();
     }
+    
+    public void resendVerificationCode(String email, String code, Timestamp expiresAt) throws SQLException {
+        VerificationCode existingCode = verificationCodeDAO.findByEmail(email);
+        if(existingCode != null) {
+            existingCode.setCode(code);
+            existingCode.setExpiresAt(expiresAt);
+            verificationCodeDAO.update(existingCode);
+        } else {
+            VerificationCode newCode = new VerificationCode();
+            newCode.setEmail(email);
+            newCode.setCode(code);
+            newCode.setExpiresAt(expiresAt);
+            verificationCodeDAO.insert(newCode);
+        }
+    }
 }

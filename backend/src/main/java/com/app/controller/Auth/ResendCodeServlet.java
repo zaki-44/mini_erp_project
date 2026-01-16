@@ -4,16 +4,21 @@ import jakarta.servlet.*;
 import jakarta.servlet.http.*;
 import jakarta.servlet.annotation.*;
 import java.io.*;
-import com.erp.dao.implementation.user.UserDAO;
-import com.erp.dao.implementation.verification.VerificationCodeDAO;
+import com.erp.service.UserService;
 import com.erp.model.user.User;
-import com.erp.model.verification.VerificationCode;
 import com.app.util.EmailService;
 import com.app.util.JWTUtil;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 @WebServlet("/resend-code")
 public class ResendCodeServlet extends HttpServlet {
+    private UserService userService;
+    
+    @Override
+    public void init() {
+        userService = new UserService();
+    }
+    
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         Gson gson = new Gson();
@@ -22,28 +27,15 @@ public class ResendCodeServlet extends HttpServlet {
         resp.setContentType("application/json");
         String email = jsonObject.get("email").getAsString();
         PrintWriter out = resp.getWriter();
-        UserDAO userDAO = new UserDAO();
         try{
-            User user = userDAO.findByEmail(email);
+            User user = userService.findByEmail(email);
             if(user == null){
                 out.println("{\"status\": \"fail\", \"message\": \"Email not found\"}");
                 return;
             }
             String code = JWTUtil.generateCode();
-            VerificationCodeDAO verificationDAO = new VerificationCodeDAO();
-            
-            // Check if verification code exists, update or insert
-            VerificationCode existingCode = verificationDAO.findByEmail(email);
-            if(existingCode != null) {
-                existingCode.setCode(code);
-                existingCode.setExpiresAt(new java.sql.Timestamp(System.currentTimeMillis() + 15 * 60 * 1000));
-                verificationDAO.update(existingCode);
-            } else {
-                VerificationCode newCode = new VerificationCode(email, code, 
-                    new java.sql.Timestamp(System.currentTimeMillis()),
-                    new java.sql.Timestamp(System.currentTimeMillis() + 15 * 60 * 1000));
-                verificationDAO.insert(newCode);
-            }
+            java.sql.Timestamp expiresAt = new java.sql.Timestamp(System.currentTimeMillis() + 15 * 60 * 1000);
+            userService.resendVerificationCode(email, code, expiresAt);
             
             EmailService.sendVerificationEmail(email, code);
             out.println("{\"status\": \"success\", \"message\": \"Verification code resent\"}");
