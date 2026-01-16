@@ -4,10 +4,15 @@ import jakarta.servlet.http.*;
 import jakarta.servlet.annotation.*;
 import java.io.*;
 
-import com.app.dao.Implementation.*;
-import com.app.model.*;
-import com.app.model.Enums.Role;
-import com.app.model.Enums.VehicleType;
+import com.erp.dao.implementation.user.ClientDAO;
+import com.erp.dao.implementation.user.DelivererDAO;
+import com.erp.dao.implementation.user.UserDAO;
+import com.erp.dao.implementation.verification.VerificationCodeDAO;
+import com.erp.model.user.User;
+import com.erp.model.user.Client;
+import com.erp.model.user.Deliverer;
+import com.erp.model.enums.UserRole;
+import com.erp.model.enums.VehicleType;
 import com.app.util.EmailService;
 import com.app.util.JWTUtil;
 import com.google.gson.Gson;
@@ -28,7 +33,7 @@ public class RegisterServlet extends HttpServlet {
         String email = jsonObject.get("email").getAsString();
         String password = jsonObject.get("password").getAsString();
         String phoneNumber = jsonObject.get("phonenumber").getAsString();
-        Role role = Role.valueOf(jsonObject.get("role").getAsString().toUpperCase());
+        UserRole role = UserRole.valueOf(jsonObject.get("role").getAsString().toUpperCase());
         User newUser = new User(0, email , username, password, firstname, lastname, phoneNumber, role , false);
         String code = JWTUtil.generateCode();
         PrintWriter out = resp.getWriter();
@@ -48,7 +53,7 @@ public class RegisterServlet extends HttpServlet {
             out.println("{\"status\": \"fail\", \"message\": \"Server error\"}");
             return;
         }
-        if(role == Role.CLIENT){
+        if(role == UserRole.CLIENT){
             String address = jsonObject.get("address").getAsString();
             String city = jsonObject.get("city").getAsString();
             int postalCode = jsonObject.get("postalcode").getAsInt();
@@ -57,7 +62,7 @@ public class RegisterServlet extends HttpServlet {
             try{
                 
                 clientDAO.insert(newClient);
-                EmailVerificationDAO verificationDAO = new EmailVerificationDAO();
+                VerificationCodeDAO verificationDAO = new VerificationCodeDAO();
                 verificationDAO.saveVerificationCode(newClient.getId(), code);
                 EmailService.sendVerificationEmail(newClient.getEmail() , code);
                 out.println("{\"status\": \"success\", \"message\": \"Client registered successfully\"}");
@@ -67,7 +72,7 @@ public class RegisterServlet extends HttpServlet {
                 out.println("{\"status\": \"fail\"}");
             }
         }
-        else if(role == Role.DELIVERER){
+        else if(role == UserRole.DELIVERER){
             VehicleType vehicleType = VehicleType.valueOf(jsonObject.get("vehicletype").getAsString().toUpperCase());
             String city = jsonObject.get("city").getAsString();
             double maxWeight = jsonObject.get("maxweight").getAsDouble();
@@ -81,7 +86,7 @@ public class RegisterServlet extends HttpServlet {
                     return;
                 }
                 delivererDAO.insert(newDeliverer);
-                EmailVerificationDAO verificationDAO = new EmailVerificationDAO();
+                VerificationCodeDAO verificationDAO = new VerificationCodeDAO();
                 verificationDAO.saveVerificationCode(newDeliverer.getId(), code);
                 EmailService.sendEmail(newDeliverer.getEmail() , "Verification Email" , "Your verification code is : " + code);
                 out.println("{\"status\": \"success\", \"message\": \"Deliverer registered successfully\"}");

@@ -1,7 +1,7 @@
 package com.app.controller.Auth;
 
-import com.app.dao.Implementation.UserDAO;
-import com.app.model.User;
+import com.erp.dao.implementation.user.UserDAO;
+import com.erp.model.user.User;
 import com.app.util.JWTUtil;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;

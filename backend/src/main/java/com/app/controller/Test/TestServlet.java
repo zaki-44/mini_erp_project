@@ -6,10 +6,11 @@ import jakarta.servlet.annotation.*;
 import java.io.*;
 import java.util.List;
 import com.google.gson.Gson;
-import com.app.model.Enums.PackageStatus;
+import com.erp.model.enums.PackageStatus;
 import com.app.service.DeliveryAssignmentService;
-import com.app.dao.Implementation.*;
-import com.app.model.*;
+import com.erp.dao.implementation.delivery.PackageDAO;
+import com.erp.model.delivery.Package;
+import com.erp.model.user.Deliverer;
 
 
 @WebServlet("/api/database/test")
@@ -18,9 +19,9 @@ public class TestServlet extends HttpServlet {
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         DeliveryAssignmentService assignmentService = new DeliveryAssignmentService();
         Integer id = Integer.parseInt(req.getParameter("id"));
-        DeliveryPackageDAO packageDAO = new DeliveryPackageDAO();
+        PackageDAO packageDAO = new PackageDAO();
         Deliverer deliverer = assignmentService.autoAssignPackage(id);
-        DeliveryPackage pkg = null;
+        Package pkg = null;
         try{
             pkg = packageDAO.findById(id);
         }
@@ -44,11 +45,11 @@ public class TestServlet extends HttpServlet {
         try {
             Gson gson = new Gson();
 
-            // Create DeliveryPackageDAO instance
-            DeliveryPackageDAO packageDAO = new DeliveryPackageDAO();
+            // Create PackageDAO instance
+            PackageDAO packageDAO = new PackageDAO();
 
-            // Create a new DeliveryPackage
-            DeliveryPackage pkg = packageDAO.findAll().get(0);
+            // Create a new Package
+            Package pkg = packageDAO.findAll().get(0);
 
             // Print after insert (ID should be set)
             System.out.println("After insert:");
@@ -61,7 +62,7 @@ public class TestServlet extends HttpServlet {
             pkg.print();
 
             // Retrieve all packages
-            List<DeliveryPackage> packages = packageDAO.findAll();
+            List<Package> packages = packageDAO.findAll();
 
             // Convert list to JSON
             String json = gson.toJson(packages);

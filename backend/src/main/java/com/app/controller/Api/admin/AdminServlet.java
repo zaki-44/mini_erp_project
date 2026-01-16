@@ -1,8 +1,8 @@
 package com.app.controller.Api.admin;
 
-import com.app.dao.Implementation.DelivererDAO;
-import com.app.dao.Implementation.UserDAO;
-import com.app.model.Deliverer;
+import com.erp.dao.implementation.user.DelivererDAO;
+import com.erp.dao.implementation.user.UserDAO;
+import com.erp.model.user.Deliverer;
 import com.google.gson.Gson;
 
 import jakarta.servlet.ServletException;

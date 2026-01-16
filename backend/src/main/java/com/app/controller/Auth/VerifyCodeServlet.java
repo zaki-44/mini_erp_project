@@ -4,10 +4,11 @@ import jakarta.servlet.http.*;
 import jakarta.servlet.annotation.*;
 import java.io.*;
 
-import com.app.dao.Implementation.*;
+import com.erp.dao.implementation.verification.VerificationCodeDAO;
+import com.erp.dao.implementation.user.UserDAO;
 import com.google.gson.*;
 
-import com.app.model.*;
+import com.erp.model.user.User;
 @WebServlet("/verifycode")
 public class VerifyCodeServlet extends HttpServlet {
     @Override
@@ -22,7 +23,7 @@ public class VerifyCodeServlet extends HttpServlet {
         UserDAO userDAO = new UserDAO();
         try{
             int id = userDAO.getUserIdByEmail(email);
-            EmailVerificationDAO verificationDAO = new EmailVerificationDAO();
+            VerificationCodeDAO verificationDAO = new VerificationCodeDAO();
             boolean isValid = verificationDAO.verifyCode(id, code);
             if(isValid){
                 User user = userDAO.findById(id);

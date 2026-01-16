@@ -4,20 +4,20 @@ import java.sql.Timestamp;
 import java.util.List;
 import java.util.Map;
 
-import com.app.dao.Implementation.AffectationDAO;
-import com.app.dao.Implementation.DelivererDAO;
-import com.app.dao.Implementation.DeliveryPackageDAO;
-import com.app.model.DeliveryPackage;
-import com.app.model.Enums.AffectationStatus;
-import com.app.model.Enums.PackageStatus;
-import com.app.model.Enums.VehicleType;
-import com.app.model.Affectation;
-import com.app.model.Client;
-import com.app.model.Deliverer;
+import com.erp.dao.implementation.delivery.AffectationDAO;
+import com.erp.dao.implementation.user.DelivererDAO;
+import com.erp.dao.implementation.delivery.PackageDAO;
+import com.erp.model.delivery.Package;
+import com.erp.model.enums.AffectationStatus;
+import com.erp.model.enums.PackageStatus;
+import com.erp.model.enums.VehicleType;
+import com.erp.model.delivery.Affectation;
+import com.erp.model.user.Client;
+import com.erp.model.user.Deliverer;
 
 public class DeliveryAssignmentService {
     private DelivererDAO delivererDAO;
-    private DeliveryPackageDAO packageDAO;
+    private PackageDAO packageDAO;
     private AffectationDAO affectationDAO;
     
     private static final double VEHICLE_MATCH_WEIGHT = 40.0;
@@ -35,11 +35,11 @@ public class DeliveryAssignmentService {
 
     public DeliveryAssignmentService() {
         this.delivererDAO = new DelivererDAO();
-        this.packageDAO = new DeliveryPackageDAO();
+        this.packageDAO = new PackageDAO();
         this.affectationDAO = new AffectationDAO();
     }
     
-    private double calculateVehicleScore(Deliverer deliverer, DeliveryPackage pkg) {
+    private double calculateVehicleScore(Deliverer deliverer, Package pkg) {
         VehicleType needed = pkg.getVehicleTypeNeeded();
         VehicleType has = deliverer.getVehicleType();
         if (needed == null) {
@@ -69,7 +69,7 @@ public class DeliveryAssignmentService {
 
         return VEHICLE_MATCH_WEIGHT * 0.5;
     }
-    private double calculateWeightCapacityScore(Deliverer deliverer, DeliveryPackage pkg) {
+    private double calculateWeightCapacityScore(Deliverer deliverer, Package pkg) {
         if (pkg.getWeight() <= 0 || deliverer.getMaxWeight() <= 0) {
             return 0.0; // No weight data
         }
@@ -119,7 +119,7 @@ public class DeliveryAssignmentService {
         return d.getCity().equals(c.getCity());
     }
 
-    public double calculateScore(Deliverer deliverer, DeliveryPackage pkg , List<Affectation> affs) {
+    public double calculateScore(Deliverer deliverer, Package pkg , List<Affectation> affs) {
         try {
             double vehicleScore = calculateVehicleScore(deliverer, pkg);
             if (vehicleScore < 0) return Double.NEGATIVE_INFINITY;
@@ -144,7 +144,7 @@ public class DeliveryAssignmentService {
         }
     }
     
-    public Deliverer findBestDelivererForPackage(List<Deliverer> potentialDeliverers, DeliveryPackage pkg) {
+    public Deliverer findBestDelivererForPackage(List<Deliverer> potentialDeliverers, Package pkg) {
         try{
             Deliverer bestDeliverer = null;
             double bestScore = Double.NEGATIVE_INFINITY;
@@ -167,7 +167,7 @@ public class DeliveryAssignmentService {
    
     public Deliverer autoAssignPackage(int packageId) {
         try {
-            DeliveryPackage pkg = packageDAO.findById(packageId);
+            Package pkg = packageDAO.findById(packageId);
             List<Deliverer> potentialDeliverers = delivererDAO.findAvailableByWeight(pkg.getWeight());
             
             Deliverer bestDeliverer = findBestDelivererForPackage(potentialDeliverers, pkg);

@@ -4,8 +4,9 @@ import jakarta.servlet.*;
 import jakarta.servlet.http.*;
 import jakarta.servlet.annotation.*;
 import java.io.*;
-import com.app.dao.Implementation.*;
-import com.app.model.*;
+import com.erp.dao.implementation.user.UserDAO;
+import com.erp.dao.implementation.verification.VerificationCodeDAO;
+import com.erp.model.user.User;
 import com.app.util.EmailService;
 import com.app.util.JWTUtil;
 import com.google.gson.Gson;
@@ -28,7 +29,7 @@ public class ResendCodeServlet extends HttpServlet {
                 return;
             }
             String code = JWTUtil.generateCode();
-            EmailVerificationDAO verificationDAO = new EmailVerificationDAO();
+            VerificationCodeDAO verificationDAO = new VerificationCodeDAO();
             verificationDAO.updateVerificationCode(user.getId(), code);
             EmailService.sendVerificationEmail(email, code);
             out.println("{\"status\": \"success\", \"message\": \"Verification code resent\"}");
