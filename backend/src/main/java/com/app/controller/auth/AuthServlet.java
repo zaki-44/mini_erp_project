@@ -8,6 +8,7 @@ import java.sql.Timestamp;
 import java.util.Calendar;
 
 import com.app.service.UserService;
+import com.app.service.AuthService;
 import com.app.service.ClientService;
 import com.app.service.DelivererService;
 import com.app.model.users.User;
@@ -23,6 +24,7 @@ import com.google.gson.JsonObject;
 @WebServlet("/auth/*")
 public class AuthServlet extends HttpServlet {
     private UserService userService;
+    private AuthService authService;
     private ClientService clientService;
     private DelivererService delivererService;
     private Gson gson;
@@ -30,6 +32,7 @@ public class AuthServlet extends HttpServlet {
     @Override
     public void init() {
         userService = new UserService();
+        authService = new AuthService();
         clientService = new ClientService();
         delivererService = new DelivererService();
         gson = new Gson();
@@ -100,11 +103,11 @@ public class AuthServlet extends HttpServlet {
             Timestamp expiresAt = new Timestamp(calendar.getTimeInMillis());
             
             // Check if user exists
-            if (userService.getUserByEmail(email) != null) {
+            if (userService.findByEmail(email) != null) {
                 sendError(resp, "Email already in use");
                 return;
             }
-            if (userService.getUserByUsername(username) != null) {
+            if (userService.findByUsername(username) != null) {
                 sendError(resp, "Username already in use");
                 return;
             }
@@ -157,7 +160,7 @@ public class AuthServlet extends HttpServlet {
             String email = jsonObject.get("email").getAsString();
             String password = jsonObject.get("password").getAsString();
             
-            User user = userService.login(email, password);
+            User user = authService.login(email, password);
             
             if (user == null) {
                 sendError(resp, "Invalid email or password");
@@ -195,7 +198,7 @@ public class AuthServlet extends HttpServlet {
             String email = jsonObject.get("email").getAsString();
             String code = jsonObject.get("code").getAsString();
             
-            boolean verified = userService.verifyEmail(email, code);
+            boolean verified = authService.verifyEmail(email, code);
             
             if (verified) {
                 sendSuccess(resp, "Email verified successfully. You can now login.");
@@ -220,7 +223,7 @@ public class AuthServlet extends HttpServlet {
             calendar.add(Calendar.MINUTE, 15);
             Timestamp expiresAt = new Timestamp(calendar.getTimeInMillis());
             
-            userService.resendVerificationCode(email, verificationCode, expiresAt);
+            authService.resendVerificationCode(email, verificationCode, expiresAt);
             sendSuccess(resp, "Verification code resent successfully");
             
         } catch (Exception e) {
