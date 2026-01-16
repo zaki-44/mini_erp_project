@@ -33,7 +33,7 @@ public class PackageService {
             notification.setPackageId(pkg.getId());
             notification.setUserTargetId(pkg.getClientSourceId());
             notification.setMessage("Package created successfully");
-            notification.setType(NotificationType.PACKAGE_CREATED);
+            notification.setType(NotificationType.STATUS_UPDATE);
             notification.setRead(false);
             notificationDAO.insert(conn, notification);
             

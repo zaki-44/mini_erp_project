@@ -56,7 +56,7 @@ public class AffectationService {
             notifDeliverer.setPackageId(packageId);
             notifDeliverer.setUserTargetId(delivererId);
             notifDeliverer.setMessage("New package assigned to you");
-            notifDeliverer.setType(NotificationType.PACKAGE_ASSIGNED);
+            notifDeliverer.setType(NotificationType.ASSIGNMENT);
             notifDeliverer.setRead(false);
             notificationDAO.insert(conn, notifDeliverer);
             
@@ -64,7 +64,7 @@ public class AffectationService {
             notifClient.setPackageId(packageId);
             notifClient.setUserTargetId(pkg.getClientSourceId());
             notifClient.setMessage("Your package has been assigned to a deliverer");
-            notifClient.setType(NotificationType.PACKAGE_ASSIGNED);
+            notifClient.setType(NotificationType.ASSIGNMENT);
             notifClient.setRead(false);
             notificationDAO.insert(conn, notifClient);
             
@@ -97,13 +97,13 @@ public class AffectationService {
                 
                 Package pkg = packageDAO.findById(affectation.getPackageId());
                 if (pkg != null) {
-                    pkg.setStatus(PackageStatus.IN_TRANSIT);
+                    pkg.setStatus(PackageStatus.PICKEDUP);
                     packageDAO.update(conn, pkg);
                     
                     Notification notification = new Notification();
                     notification.setPackageId(pkg.getId());
                     notification.setUserTargetId(pkg.getClientSourceId());
-                    notification.setMessage("Your package is now in transit");
+                    notification.setMessage("Your package has been picked up");
                     notification.setType(NotificationType.STATUS_UPDATE);
                     notification.setRead(false);
                     notificationDAO.insert(conn, notification);
@@ -178,7 +178,7 @@ public class AffectationService {
                     notification.setPackageId(pkg.getId());
                     notification.setUserTargetId(pkg.getClientDestinationId());
                     notification.setMessage("Your package has been delivered");
-                    notification.setType(NotificationType.PACKAGE_DELIVERED);
+                    notification.setType(NotificationType.DELIVERY_CONFIRM);
                     notification.setRead(false);
                     notificationDAO.insert(conn, notification);
                 }

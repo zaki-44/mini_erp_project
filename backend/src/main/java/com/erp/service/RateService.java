@@ -32,7 +32,7 @@ public class RateService {
             notification.setPackageId(0);
             notification.setUserTargetId(rate.getDelivererId());
             notification.setMessage("You received a new rating: " + rate.getScore() + " stars");
-            notification.setType(NotificationType.RATE_RECEIVED);
+            notification.setType(NotificationType.STATUS_UPDATE);
             notification.setRead(false);
             notificationDAO.insert(conn, notification);
             
