@@ -87,12 +87,8 @@ public class RegisterServlet extends HttpServlet {
             String serialNumber = jsonObject.get("serialnumber").getAsString();
             
             try {
-                // Check if serial number exists by querying deliverers
-                List<Deliverer> allDeliverers = delivererService.getAllDeliverers();
-                boolean serialExists = allDeliverers.stream()
-                    .anyMatch(d -> d.getSerialNumber().equals(serialNumber));
-                
-                if(serialExists) {
+                // Check if serial number exists
+                if(delivererService.isSerialNumberExists(serialNumber)) {
                     out.println("{\"status\": \"fail\", \"message\": \"Serial number already in use\"}");
                     return;
                 }

@@ -93,4 +93,10 @@ public class DelivererService {
             delivererDAO.update(deliverer);
         }
     }
+    
+    public boolean isSerialNumberExists(String serialNumber) throws SQLException {
+        List<Deliverer> allDeliverers = delivererDAO.findAll();
+        return allDeliverers.stream()
+            .anyMatch(d -> d.getSerialNumber().equals(serialNumber));
+    }
 }

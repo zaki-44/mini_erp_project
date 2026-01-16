@@ -123,17 +123,36 @@ public class UserService {
     }
     
     public void resendVerificationCode(String email, String code, Timestamp expiresAt) throws SQLException {
-        VerificationCode existingCode = verificationCodeDAO.findByEmail(email);
-        if(existingCode != null) {
-            existingCode.setCode(code);
-            existingCode.setExpiresAt(expiresAt);
-            verificationCodeDAO.update(existingCode);
-        } else {
-            VerificationCode newCode = new VerificationCode();
-            newCode.setEmail(email);
-            newCode.setCode(code);
-            newCode.setExpiresAt(expiresAt);
-            verificationCodeDAO.insert(newCode);
+        Connection conn = null;
+        try {
+            conn = Database.getConnection();
+            conn.setAutoCommit(false);
+            
+            VerificationCode existingCode = verificationCodeDAO.findByEmail(email);
+            if(existingCode != null) {
+                existingCode.setCode(code);
+                existingCode.setExpiresAt(expiresAt);
+                verificationCodeDAO.update(conn, existingCode);
+            } else {
+                VerificationCode newCode = new VerificationCode();
+                newCode.setEmail(email);
+                newCode.setCode(code);
+                newCode.setExpiresAt(expiresAt);
+                verificationCodeDAO.insert(conn, newCode);
+            }
+            
+            conn.commit();
+        } catch (SQLException e) {
+            if (conn != null) {
+                try {
+                    conn.rollback();
+                } catch (SQLException rollbackEx) {
+                    System.err.println("Failed to rollback: " + rollbackEx.getMessage());
+                }
+            }
+            throw e;
+        } finally {
+            Database.closeConnection(conn);
         }
     }
 }
