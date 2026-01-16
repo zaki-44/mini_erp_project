@@ -51,7 +51,7 @@ public class LoginServlet extends HttpServlet {
             LoginRequest loginRequest = gson.fromJson(sb.toString(), LoginRequest.class);
 
             // 3. Find User
-            User user = userDAO.getByEmail(loginRequest.email);
+            User user = userDAO.findByEmail(loginRequest.email);
 
             // 4. Validate Password
             if (user != null && user.getPasswordHash().equals(loginRequest.password) && user.isEmailVerified()) {

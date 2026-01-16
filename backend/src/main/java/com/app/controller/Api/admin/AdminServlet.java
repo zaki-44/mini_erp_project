@@ -36,7 +36,11 @@ public class AdminServlet extends HttpServlet {
         // Route: GET /api/admin/pending-deliverers
         if ("/pending-deliverers".equals(pathInfo)) {
             try{
-                List<Deliverer> pending = delivererDAO.getPendingDeliverers();
+                // Get all deliverers and filter for those not approved
+                List<Deliverer> all = delivererDAO.findAll();
+                List<Deliverer> pending = all.stream()
+                    .filter(d -> !d.isApproved())
+                    .collect(java.util.stream.Collectors.toList());
                 resp.setContentType("application/json");
                 resp.getWriter().write(gson.toJson(pending));
             }
@@ -61,17 +65,22 @@ public class AdminServlet extends HttpServlet {
             if (idParam != null) {
                 try {
                     int userId = Integer.parseInt(idParam);
-                    boolean success = userDAO.approveDeliverer(userId);
-                    
-                    if (success) {
+                    // Get the deliverer and update the isApproved flag
+                    Deliverer deliverer = delivererDAO.findById(userId);
+                    if(deliverer != null) {
+                        deliverer.setApproved(true);
+                        delivererDAO.update(deliverer);
                         resp.getWriter().write("{\"message\": \"Deliverer Approved Successfully\"}");
                     } else {
-                        resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-                        resp.getWriter().write("{\"error\": \"Failed to approve\"}");
+                        resp.setStatus(HttpServletResponse.SC_NOT_FOUND);
+                        resp.getWriter().write("{\"error\": \"Deliverer not found\"}");
                     }
                 } catch (NumberFormatException e) {
                     resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
                     resp.getWriter().write("{\"error\": \"Invalid ID format\"}");
+                } catch (Exception e) {
+                    resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                    resp.getWriter().write("{\"error\": \"Server error\"}");
                 }
             } else {
                 resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);

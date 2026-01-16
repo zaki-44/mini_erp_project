@@ -7,6 +7,7 @@ import java.io.*;
 import com.erp.dao.implementation.user.UserDAO;
 import com.erp.dao.implementation.verification.VerificationCodeDAO;
 import com.erp.model.user.User;
+import com.erp.model.verification.VerificationCode;
 import com.app.util.EmailService;
 import com.app.util.JWTUtil;
 import com.google.gson.Gson;
@@ -23,14 +24,27 @@ public class ResendCodeServlet extends HttpServlet {
         PrintWriter out = resp.getWriter();
         UserDAO userDAO = new UserDAO();
         try{
-            User user = userDAO.getByEmail(email);
+            User user = userDAO.findByEmail(email);
             if(user == null){
                 out.println("{\"status\": \"fail\", \"message\": \"Email not found\"}");
                 return;
             }
             String code = JWTUtil.generateCode();
             VerificationCodeDAO verificationDAO = new VerificationCodeDAO();
-            verificationDAO.updateVerificationCode(user.getId(), code);
+            
+            // Check if verification code exists, update or insert
+            VerificationCode existingCode = verificationDAO.findByEmail(email);
+            if(existingCode != null) {
+                existingCode.setCode(code);
+                existingCode.setExpiresAt(new java.sql.Timestamp(System.currentTimeMillis() + 15 * 60 * 1000));
+                verificationDAO.update(existingCode);
+            } else {
+                VerificationCode newCode = new VerificationCode(email, code, 
+                    new java.sql.Timestamp(System.currentTimeMillis()),
+                    new java.sql.Timestamp(System.currentTimeMillis() + 15 * 60 * 1000));
+                verificationDAO.insert(newCode);
+            }
+            
             EmailService.sendVerificationEmail(email, code);
             out.println("{\"status\": \"success\", \"message\": \"Verification code resent\"}");
         }

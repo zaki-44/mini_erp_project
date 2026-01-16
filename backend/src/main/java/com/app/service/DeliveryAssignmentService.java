@@ -6,6 +6,7 @@ import java.util.Map;
 
 import com.erp.dao.implementation.delivery.AffectationDAO;
 import com.erp.dao.implementation.user.DelivererDAO;
+import com.erp.dao.implementation.user.ClientDAO;
 import com.erp.dao.implementation.delivery.PackageDAO;
 import com.erp.model.delivery.Package;
 import com.erp.model.enums.AffectationStatus;
@@ -19,6 +20,7 @@ public class DeliveryAssignmentService {
     private DelivererDAO delivererDAO;
     private PackageDAO packageDAO;
     private AffectationDAO affectationDAO;
+    private ClientDAO clientDAO;
     
     private static final double VEHICLE_MATCH_WEIGHT = 40.0;
     private static final double WORKLOAD_PENALTY_PER_ASSIGNMENT = 10.0;
@@ -37,6 +39,7 @@ public class DeliveryAssignmentService {
         this.delivererDAO = new DelivererDAO();
         this.packageDAO = new PackageDAO();
         this.affectationDAO = new AffectationDAO();
+        this.clientDAO = new ClientDAO();
     }
     
     private double calculateVehicleScore(Deliverer deliverer, Package pkg) {
@@ -127,8 +130,8 @@ public class DeliveryAssignmentService {
             double weightScore = calculateWeightCapacityScore(deliverer, pkg);
             if (weightScore < -100.0) return Double.NEGATIVE_INFINITY;
             double score = 0.0;
-            Client sourceClient = affectationDAO.getSourceClient(pkg);
-            if(!isSameCity(deliverer, sourceClient)){ 
+            Client sourceClient = clientDAO.findById(pkg.getClientSourceId());
+            if(sourceClient == null || !isSameCity(deliverer, sourceClient)){ 
                 return Double.NEGATIVE_INFINITY; 
             }
             score += vehicleScore;
@@ -149,7 +152,7 @@ public class DeliveryAssignmentService {
             Deliverer bestDeliverer = null;
             double bestScore = Double.NEGATIVE_INFINITY;
             for (Deliverer deliverer : potentialDeliverers) {
-                List<Affectation> affectations = affectationDAO.findByDelivererId(deliverer.getId());
+                List<Affectation> affectations = affectationDAO.findByDeliverer(deliverer.getId());
                 double score = calculateScore(deliverer, pkg , affectations);
 
                 if (score > bestScore) {
@@ -168,17 +171,21 @@ public class DeliveryAssignmentService {
     public Deliverer autoAssignPackage(int packageId) {
         try {
             Package pkg = packageDAO.findById(packageId);
-            List<Deliverer> potentialDeliverers = delivererDAO.findAvailableByWeight(pkg.getWeight());
+            // Get all available deliverers and filter by weight in the service
+            List<Deliverer> allDeliverers = delivererDAO.findAvailableDeliverers();
+            List<Deliverer> potentialDeliverers = allDeliverers.stream()
+                .filter(d -> d.getMaxWeight() >= pkg.getWeight())
+                .collect(java.util.stream.Collectors.toList());
             
             Deliverer bestDeliverer = findBestDelivererForPackage(potentialDeliverers, pkg);
 
             if (bestDeliverer != null) {
-                double newLoad = bestDeliverer.getCurrentLoad() + pkg.getWeight();
+                float newLoad = bestDeliverer.getCurrentLoad() + pkg.getWeight();
                 bestDeliverer.setCurrentLoad(newLoad);
                 if (newLoad >= bestDeliverer.getMaxWeight()) {
                     bestDeliverer.setAvailable(false);
                 }
-                Affectation aff = new Affectation(0, bestDeliverer.getId(), pkg.getIdPackage(), 
+                Affectation aff = new Affectation(0, bestDeliverer.getId(), pkg.getId(), 
                                                 AffectationStatus.PENDING, new Timestamp(System.currentTimeMillis()));
                 
                 pkg.setStatus(PackageStatus.ASSIGNED);

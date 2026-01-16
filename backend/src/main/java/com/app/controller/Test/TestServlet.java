@@ -52,14 +52,12 @@ public class TestServlet extends HttpServlet {
             Package pkg = packageDAO.findAll().get(0);
 
             // Print after insert (ID should be set)
-            System.out.println("After insert:");
-            pkg.print();
+            System.out.println("After insert: ID=" + pkg.getId());
 
             // Update the package
             pkg.setStatus(PackageStatus.ASSIGNED);
             packageDAO.update(pkg);
-            System.out.println("After update:");
-            pkg.print();
+            System.out.println("After update: Status=" + pkg.getStatus());
 
             // Retrieve all packages
             List<Package> packages = packageDAO.findAll();
