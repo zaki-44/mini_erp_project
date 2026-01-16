@@ -35,15 +35,13 @@ public class PackageDAO implements GenericDAO<Package> {
         return pkg;
     }
 
-    @Override
-    public void insert(Package pkg) throws SQLException {
+    // Atomic operation with provided connection
+    public void insert(Connection conn, Package pkg) throws SQLException {
         String sql = "INSERT INTO package (id_client_source, id_client_destination, vehicle_type_needed, address_source, " +
                      "address_destination, weight, price, dimensions, description, delivery_instructions, status) " +
                      "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         
-        try (Connection conn = Database.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
-            
+        try (PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             stmt.setInt(1, pkg.getClientSourceId());
             stmt.setInt(2, pkg.getClientDestinationId());
             stmt.setString(3, pkg.getVehicleTypeNeeded() != null ? pkg.getVehicleTypeNeeded().name() : null);
@@ -70,14 +68,19 @@ public class PackageDAO implements GenericDAO<Package> {
     }
 
     @Override
-    public void update(Package pkg) throws SQLException {
+    public void insert(Package pkg) throws SQLException {
+        try (Connection conn = Database.getConnection()) {
+            insert(conn, pkg);
+        }
+    }
+
+    // Atomic operation with provided connection
+    public void update(Connection conn, Package pkg) throws SQLException {
         String sql = "UPDATE package SET id_client_source=?, id_client_destination=?, vehicle_type_needed=?, " +
                      "address_source=?, address_destination=?, weight=?, price=?, dimensions=?, description=?, " +
                      "delivery_instructions=?, status=? WHERE id_package=?";
         
-        try (Connection conn = Database.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, pkg.getClientSourceId());
             stmt.setInt(2, pkg.getClientDestinationId());
             stmt.setString(3, pkg.getVehicleTypeNeeded() != null ? pkg.getVehicleTypeNeeded().name() : null);
@@ -99,17 +102,29 @@ public class PackageDAO implements GenericDAO<Package> {
     }
 
     @Override
-    public void delete(int id) throws SQLException {
+    public void update(Package pkg) throws SQLException {
+        try (Connection conn = Database.getConnection()) {
+            update(conn, pkg);
+        }
+    }
+
+    // Atomic operation with provided connection
+    public void delete(Connection conn, int id) throws SQLException {
         String sql = "DELETE FROM package WHERE id_package=?";
         
-        try (Connection conn = Database.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, id);
             stmt.executeUpdate();
         } catch (SQLException e) {
             System.err.println("Error deleting package: " + e.getMessage());
             throw e;
+        }
+    }
+
+    @Override
+    public void delete(int id) throws SQLException {
+        try (Connection conn = Database.getConnection()) {
+            delete(conn, id);
         }
     }
 

@@ -28,17 +28,13 @@ public class ClientDAO implements GenericDAO<Client> {
         return client;
     }
 
-    @Override
-    public void insert(Client client) throws SQLException {
+    // Atomic operation with provided connection
+    public void insert(Connection conn, Client client) throws SQLException {
         String insertUser = "INSERT INTO users (email, username, password_hash, first_name, last_name, phone_number, email_verified, role) " +
                            "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
         String insertClient = "INSERT INTO client (id, address, city, postal_code) VALUES (?, ?, ?, ?)";
         
-        Connection conn = null;
         try {
-            conn = Database.getConnection();
-            conn.setAutoCommit(false);
-            
             // Insert user
             PreparedStatement userStmt = conn.prepareStatement(insertUser, Statement.RETURN_GENERATED_KEYS);
             userStmt.setString(1, client.getEmail());
@@ -70,6 +66,20 @@ public class ClientDAO implements GenericDAO<Client> {
             clientStmt.setInt(4, client.getPostalCode());
             clientStmt.executeUpdate();
             clientStmt.close();
+        } catch (SQLException e) {
+            System.err.println("Error inserting client: " + e.getMessage());
+            throw e;
+        }
+    }
+
+    @Override
+    public void insert(Client client) throws SQLException {
+        Connection conn = null;
+        try {
+            conn = Database.getConnection();
+            conn.setAutoCommit(false);
+            
+            insert(conn, client);
             
             conn.commit();
         } catch (SQLException e) {
@@ -94,17 +104,13 @@ public class ClientDAO implements GenericDAO<Client> {
         }
     }
 
-    @Override
-    public void update(Client client) throws SQLException {
+    // Atomic operation with provided connection
+    public void update(Connection conn, Client client) throws SQLException {
         String updateUser = "UPDATE users SET email=?, username=?, password_hash=?, first_name=?, last_name=?, " +
                            "phone_number=?, email_verified=?, role=? WHERE id=?";
         String updateClient = "UPDATE client SET address=?, city=?, postal_code=? WHERE id=?";
         
-        Connection conn = null;
         try {
-            conn = Database.getConnection();
-            conn.setAutoCommit(false);
-            
             // Update user
             PreparedStatement userStmt = conn.prepareStatement(updateUser);
             userStmt.setString(1, client.getEmail());
@@ -127,7 +133,19 @@ public class ClientDAO implements GenericDAO<Client> {
             clientStmt.setInt(4, client.getId());
             clientStmt.executeUpdate();
             clientStmt.close();
-            
+        } catch (SQLException e) {
+            System.err.println("Error updating client: " + e.getMessage());
+            throw e;
+        }
+    }
+
+    @Override
+    public void update(Client client) throws SQLException {
+        Connection conn = null;
+        try {
+            conn = Database.getConnection();
+            conn.setAutoCommit(false);
+            update(conn, client);
             conn.commit();
         } catch (SQLException e) {
             if (conn != null) {
@@ -137,7 +155,6 @@ public class ClientDAO implements GenericDAO<Client> {
                     System.err.println("Failed to rollback: " + rollbackEx.getMessage());
                 }
             }
-            System.err.println("Error updating client: " + e.getMessage());
             throw e;
         } finally {
             if (conn != null) {
@@ -151,16 +168,12 @@ public class ClientDAO implements GenericDAO<Client> {
         }
     }
 
-    @Override
-    public void delete(int id) throws SQLException {
+    // Atomic operation with provided connection
+    public void delete(Connection conn, int id) throws SQLException {
         String deleteClient = "DELETE FROM client WHERE id=?";
         String deleteUser = "DELETE FROM users WHERE id=?";
         
-        Connection conn = null;
         try {
-            conn = Database.getConnection();
-            conn.setAutoCommit(false);
-            
             PreparedStatement clientStmt = conn.prepareStatement(deleteClient);
             clientStmt.setInt(1, id);
             clientStmt.executeUpdate();
@@ -170,7 +183,19 @@ public class ClientDAO implements GenericDAO<Client> {
             userStmt.setInt(1, id);
             userStmt.executeUpdate();
             userStmt.close();
-            
+        } catch (SQLException e) {
+            System.err.println("Error deleting client: " + e.getMessage());
+            throw e;
+        }
+    }
+
+    @Override
+    public void delete(int id) throws SQLException {
+        Connection conn = null;
+        try {
+            conn = Database.getConnection();
+            conn.setAutoCommit(false);
+            delete(conn, id);
             conn.commit();
         } catch (SQLException e) {
             if (conn != null) {
@@ -180,7 +205,6 @@ public class ClientDAO implements GenericDAO<Client> {
                     System.err.println("Failed to rollback: " + rollbackEx.getMessage());
                 }
             }
-            System.err.println("Error deleting client: " + e.getMessage());
             throw e;
         } finally {
             if (conn != null) {

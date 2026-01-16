@@ -33,18 +33,14 @@ public class DelivererDAO implements GenericDAO<Deliverer> {
         return deliverer;
     }
 
-    @Override
-    public void insert(Deliverer deliverer) throws SQLException {
+    // Atomic operation with provided connection
+    public void insert(Connection conn, Deliverer deliverer) throws SQLException {
         String insertUser = "INSERT INTO users (email, username, password_hash, first_name, last_name, phone_number, email_verified, role) " +
                            "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
         String insertDeliverer = "INSERT INTO deliverer (id, vehicle_type, max_weight, current_load, serial_number, city, is_available, is_approved) " +
                                 "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
         
-        Connection conn = null;
         try {
-            conn = Database.getConnection();
-            conn.setAutoCommit(false);
-            
             // Insert user
             PreparedStatement userStmt = conn.prepareStatement(insertUser, Statement.RETURN_GENERATED_KEYS);
             userStmt.setString(1, deliverer.getEmail());
@@ -80,7 +76,19 @@ public class DelivererDAO implements GenericDAO<Deliverer> {
             delivererStmt.setBoolean(8, deliverer.isApproved());
             delivererStmt.executeUpdate();
             delivererStmt.close();
-            
+        } catch (SQLException e) {
+            System.err.println("Error inserting deliverer: " + e.getMessage());
+            throw e;
+        }
+    }
+
+    @Override
+    public void insert(Deliverer deliverer) throws SQLException {
+        Connection conn = null;
+        try {
+            conn = Database.getConnection();
+            conn.setAutoCommit(false);
+            insert(conn, deliverer);
             conn.commit();
         } catch (SQLException e) {
             if (conn != null) {
@@ -90,7 +98,6 @@ public class DelivererDAO implements GenericDAO<Deliverer> {
                     System.err.println("Failed to rollback: " + rollbackEx.getMessage());
                 }
             }
-            System.err.println("Error inserting deliverer: " + e.getMessage());
             throw e;
         } finally {
             if (conn != null) {
@@ -104,18 +111,14 @@ public class DelivererDAO implements GenericDAO<Deliverer> {
         }
     }
 
-    @Override
-    public void update(Deliverer deliverer) throws SQLException {
+    // Atomic operation with provided connection
+    public void update(Connection conn, Deliverer deliverer) throws SQLException {
         String updateUser = "UPDATE users SET email=?, username=?, password_hash=?, first_name=?, last_name=?, " +
                            "phone_number=?, email_verified=?, role=? WHERE id=?";
         String updateDeliverer = "UPDATE deliverer SET vehicle_type=?, max_weight=?, current_load=?, serial_number=?, " +
                                 "city=?, is_available=?, is_approved=? WHERE id=?";
         
-        Connection conn = null;
         try {
-            conn = Database.getConnection();
-            conn.setAutoCommit(false);
-            
             // Update user
             PreparedStatement userStmt = conn.prepareStatement(updateUser);
             userStmt.setString(1, deliverer.getEmail());
@@ -142,7 +145,19 @@ public class DelivererDAO implements GenericDAO<Deliverer> {
             delivererStmt.setInt(8, deliverer.getId());
             delivererStmt.executeUpdate();
             delivererStmt.close();
-            
+        } catch (SQLException e) {
+            System.err.println("Error updating deliverer: " + e.getMessage());
+            throw e;
+        }
+    }
+
+    @Override
+    public void update(Deliverer deliverer) throws SQLException {
+        Connection conn = null;
+        try {
+            conn = Database.getConnection();
+            conn.setAutoCommit(false);
+            update(conn, deliverer);
             conn.commit();
         } catch (SQLException e) {
             if (conn != null) {
@@ -152,7 +167,6 @@ public class DelivererDAO implements GenericDAO<Deliverer> {
                     System.err.println("Failed to rollback: " + rollbackEx.getMessage());
                 }
             }
-            System.err.println("Error updating deliverer: " + e.getMessage());
             throw e;
         } finally {
             if (conn != null) {
@@ -166,16 +180,12 @@ public class DelivererDAO implements GenericDAO<Deliverer> {
         }
     }
 
-    @Override
-    public void delete(int id) throws SQLException {
+    // Atomic operation with provided connection
+    public void delete(Connection conn, int id) throws SQLException {
         String deleteDeliverer = "DELETE FROM deliverer WHERE id=?";
         String deleteUser = "DELETE FROM users WHERE id=?";
         
-        Connection conn = null;
         try {
-            conn = Database.getConnection();
-            conn.setAutoCommit(false);
-            
             PreparedStatement delivererStmt = conn.prepareStatement(deleteDeliverer);
             delivererStmt.setInt(1, id);
             delivererStmt.executeUpdate();
@@ -185,7 +195,19 @@ public class DelivererDAO implements GenericDAO<Deliverer> {
             userStmt.setInt(1, id);
             userStmt.executeUpdate();
             userStmt.close();
-            
+        } catch (SQLException e) {
+            System.err.println("Error deleting deliverer: " + e.getMessage());
+            throw e;
+        }
+    }
+
+    @Override
+    public void delete(int id) throws SQLException {
+        Connection conn = null;
+        try {
+            conn = Database.getConnection();
+            conn.setAutoCommit(false);
+            delete(conn, id);
             conn.commit();
         } catch (SQLException e) {
             if (conn != null) {
@@ -195,7 +217,6 @@ public class DelivererDAO implements GenericDAO<Deliverer> {
                     System.err.println("Failed to rollback: " + rollbackEx.getMessage());
                 }
             }
-            System.err.println("Error deleting deliverer: " + e.getMessage());
             throw e;
         } finally {
             if (conn != null) {

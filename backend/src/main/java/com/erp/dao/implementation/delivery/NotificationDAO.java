@@ -23,13 +23,11 @@ public class NotificationDAO implements GenericDAO<Notification> {
         return notification;
     }
 
-    @Override
-    public void insert(Notification notification) throws SQLException {
+    // Atomic operation with provided connection
+    public void insert(Connection conn, Notification notification) throws SQLException {
         String sql = "INSERT INTO notification (id_package, id_user_target, message, type, is_read) VALUES (?, ?, ?, ?, ?)";
         
-        try (Connection conn = Database.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
-            
+        try (PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             stmt.setInt(1, notification.getPackageId());
             stmt.setInt(2, notification.getUserTargetId());
             stmt.setString(3, notification.getMessage());
@@ -50,12 +48,17 @@ public class NotificationDAO implements GenericDAO<Notification> {
     }
 
     @Override
-    public void update(Notification notification) throws SQLException {
+    public void insert(Notification notification) throws SQLException {
+        try (Connection conn = Database.getConnection()) {
+            insert(conn, notification);
+        }
+    }
+
+    // Atomic operation with provided connection
+    public void update(Connection conn, Notification notification) throws SQLException {
         String sql = "UPDATE notification SET id_package=?, id_user_target=?, message=?, type=?, is_read=? WHERE id_notification=?";
         
-        try (Connection conn = Database.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, notification.getPackageId());
             stmt.setInt(2, notification.getUserTargetId());
             stmt.setString(3, notification.getMessage());
@@ -71,17 +74,29 @@ public class NotificationDAO implements GenericDAO<Notification> {
     }
 
     @Override
-    public void delete(int id) throws SQLException {
+    public void update(Notification notification) throws SQLException {
+        try (Connection conn = Database.getConnection()) {
+            update(conn, notification);
+        }
+    }
+
+    // Atomic operation with provided connection
+    public void delete(Connection conn, int id) throws SQLException {
         String sql = "DELETE FROM notification WHERE id_notification=?";
         
-        try (Connection conn = Database.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, id);
             stmt.executeUpdate();
         } catch (SQLException e) {
             System.err.println("Error deleting notification: " + e.getMessage());
             throw e;
+        }
+    }
+
+    @Override
+    public void delete(int id) throws SQLException {
+        try (Connection conn = Database.getConnection()) {
+            delete(conn, id);
         }
     }
 

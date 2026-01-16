@@ -21,13 +21,11 @@ public class AffectationDAO implements GenericDAO<Affectation> {
         return affectation;
     }
 
-    @Override
-    public void insert(Affectation affectation) throws SQLException {
+    // Atomic operation with provided connection
+    public void insert(Connection conn, Affectation affectation) throws SQLException {
         String sql = "INSERT INTO affectation (id_deliverer, id_package, status) VALUES (?, ?, ?)";
         
-        try (Connection conn = Database.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
-            
+        try (PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             stmt.setInt(1, affectation.getDelivererId());
             stmt.setInt(2, affectation.getPackageId());
             stmt.setString(3, affectation.getStatus() != null ? affectation.getStatus().name() : AffectationStatus.PENDING.name());
@@ -46,12 +44,17 @@ public class AffectationDAO implements GenericDAO<Affectation> {
     }
 
     @Override
-    public void update(Affectation affectation) throws SQLException {
+    public void insert(Affectation affectation) throws SQLException {
+        try (Connection conn = Database.getConnection()) {
+            insert(conn, affectation);
+        }
+    }
+
+    // Atomic operation with provided connection
+    public void update(Connection conn, Affectation affectation) throws SQLException {
         String sql = "UPDATE affectation SET id_deliverer=?, id_package=?, status=? WHERE id_affectation=?";
         
-        try (Connection conn = Database.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, affectation.getDelivererId());
             stmt.setInt(2, affectation.getPackageId());
             stmt.setString(3, affectation.getStatus().name());
@@ -65,17 +68,29 @@ public class AffectationDAO implements GenericDAO<Affectation> {
     }
 
     @Override
-    public void delete(int id) throws SQLException {
+    public void update(Affectation affectation) throws SQLException {
+        try (Connection conn = Database.getConnection()) {
+            update(conn, affectation);
+        }
+    }
+
+    // Atomic operation with provided connection
+    public void delete(Connection conn, int id) throws SQLException {
         String sql = "DELETE FROM affectation WHERE id_affectation=?";
         
-        try (Connection conn = Database.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, id);
             stmt.executeUpdate();
         } catch (SQLException e) {
             System.err.println("Error deleting affectation: " + e.getMessage());
             throw e;
+        }
+    }
+
+    @Override
+    public void delete(int id) throws SQLException {
+        try (Connection conn = Database.getConnection()) {
+            delete(conn, id);
         }
     }
 

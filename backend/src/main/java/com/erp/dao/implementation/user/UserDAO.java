@@ -26,14 +26,12 @@ public class UserDAO implements GenericDAO<User> {
         return user;
     }
 
-    @Override
-    public void insert(User user) throws SQLException {
+    // Atomic operation with provided connection
+    public void insert(Connection conn, User user) throws SQLException {
         String sql = "INSERT INTO users (email, username, password_hash, first_name, last_name, phone_number, email_verified, role) " +
                      "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
         
-        try (Connection conn = Database.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
-            
+        try (PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             stmt.setString(1, user.getEmail());
             stmt.setString(2, user.getUsername());
             stmt.setString(3, user.getPasswordHash());
@@ -57,13 +55,21 @@ public class UserDAO implements GenericDAO<User> {
     }
 
     @Override
-    public void update(User user) throws SQLException {
+    public void insert(User user) throws SQLException {
+        try (Connection conn = Database.getConnection()) {
+            insert(conn, user);
+        } catch (SQLException e) {
+            System.err.println("Error inserting user: " + e.getMessage());
+            throw e;
+        }
+    }
+
+    // Atomic operation with provided connection
+    public void update(Connection conn, User user) throws SQLException {
         String sql = "UPDATE users SET email=?, username=?, password_hash=?, first_name=?, last_name=?, " +
                      "phone_number=?, email_verified=?, role=? WHERE id=?";
         
-        try (Connection conn = Database.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, user.getEmail());
             stmt.setString(2, user.getUsername());
             stmt.setString(3, user.getPasswordHash());
@@ -82,14 +88,32 @@ public class UserDAO implements GenericDAO<User> {
     }
 
     @Override
-    public void delete(int id) throws SQLException {
+    public void update(User user) throws SQLException {
+        try (Connection conn = Database.getConnection()) {
+            update(conn, user);
+        } catch (SQLException e) {
+            System.err.println("Error updating user: " + e.getMessage());
+            throw e;
+        }
+    }
+
+    // Atomic operation with provided connection
+    public void delete(Connection conn, int id) throws SQLException {
         String sql = "DELETE FROM users WHERE id=?";
         
-        try (Connection conn = Database.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, id);
             stmt.executeUpdate();
+        } catch (SQLException e) {
+            System.err.println("Error deleting user: " + e.getMessage());
+            throw e;
+        }
+    }
+
+    @Override
+    public void delete(int id) throws SQLException {
+        try (Connection conn = Database.getConnection()) {
+            delete(conn, id);
         } catch (SQLException e) {
             System.err.println("Error deleting user: " + e.getMessage());
             throw e;

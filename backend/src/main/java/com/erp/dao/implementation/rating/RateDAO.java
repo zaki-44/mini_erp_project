@@ -21,13 +21,11 @@ public class RateDAO implements GenericDAO<Rate> {
         return rate;
     }
 
-    @Override
-    public void insert(Rate rate) throws SQLException {
+    // Atomic operation with provided connection
+    public void insert(Connection conn, Rate rate) throws SQLException {
         String sql = "INSERT INTO rate (id_client, id_deliverer, score, comment) VALUES (?, ?, ?, ?)";
         
-        try (Connection conn = Database.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
-            
+        try (PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             stmt.setInt(1, rate.getClientId());
             stmt.setInt(2, rate.getDelivererId());
             stmt.setFloat(3, rate.getScore());
@@ -47,12 +45,17 @@ public class RateDAO implements GenericDAO<Rate> {
     }
 
     @Override
-    public void update(Rate rate) throws SQLException {
+    public void insert(Rate rate) throws SQLException {
+        try (Connection conn = Database.getConnection()) {
+            insert(conn, rate);
+        }
+    }
+
+    // Atomic operation with provided connection
+    public void update(Connection conn, Rate rate) throws SQLException {
         String sql = "UPDATE rate SET id_client=?, id_deliverer=?, score=?, comment=? WHERE id=?";
         
-        try (Connection conn = Database.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, rate.getClientId());
             stmt.setInt(2, rate.getDelivererId());
             stmt.setFloat(3, rate.getScore());
@@ -67,17 +70,29 @@ public class RateDAO implements GenericDAO<Rate> {
     }
 
     @Override
-    public void delete(int id) throws SQLException {
+    public void update(Rate rate) throws SQLException {
+        try (Connection conn = Database.getConnection()) {
+            update(conn, rate);
+        }
+    }
+
+    // Atomic operation with provided connection
+    public void delete(Connection conn, int id) throws SQLException {
         String sql = "DELETE FROM rate WHERE id=?";
         
-        try (Connection conn = Database.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, id);
             stmt.executeUpdate();
         } catch (SQLException e) {
             System.err.println("Error deleting rate: " + e.getMessage());
             throw e;
+        }
+    }
+
+    @Override
+    public void delete(int id) throws SQLException {
+        try (Connection conn = Database.getConnection()) {
+            delete(conn, id);
         }
     }
 

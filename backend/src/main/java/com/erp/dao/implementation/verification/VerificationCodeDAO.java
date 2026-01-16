@@ -18,12 +18,11 @@ public class VerificationCodeDAO {
         return verificationCode;
     }
 
-    public void insert(VerificationCode verificationCode) throws SQLException {
+    // Atomic operation with provided connection
+    public void insert(Connection conn, VerificationCode verificationCode) throws SQLException {
         String sql = "INSERT INTO verification_code (email, code, expires_at) VALUES (?, ?, ?)";
         
-        try (Connection conn = Database.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, verificationCode.getEmail());
             stmt.setString(2, verificationCode.getCode());
             stmt.setTimestamp(3, verificationCode.getExpiresAt());
@@ -35,12 +34,17 @@ public class VerificationCodeDAO {
         }
     }
 
-    public void update(VerificationCode verificationCode) throws SQLException {
+    public void insert(VerificationCode verificationCode) throws SQLException {
+        try (Connection conn = Database.getConnection()) {
+            insert(conn, verificationCode);
+        }
+    }
+
+    // Atomic operation with provided connection
+    public void update(Connection conn, VerificationCode verificationCode) throws SQLException {
         String sql = "UPDATE verification_code SET code=?, expires_at=? WHERE email=?";
         
-        try (Connection conn = Database.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, verificationCode.getCode());
             stmt.setTimestamp(2, verificationCode.getExpiresAt());
             stmt.setString(3, verificationCode.getEmail());
@@ -52,17 +56,28 @@ public class VerificationCodeDAO {
         }
     }
 
-    public void delete(String email) throws SQLException {
+    public void update(VerificationCode verificationCode) throws SQLException {
+        try (Connection conn = Database.getConnection()) {
+            update(conn, verificationCode);
+        }
+    }
+
+    // Atomic operation with provided connection
+    public void delete(Connection conn, String email) throws SQLException {
         String sql = "DELETE FROM verification_code WHERE email=?";
         
-        try (Connection conn = Database.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, email);
             stmt.executeUpdate();
         } catch (SQLException e) {
             System.err.println("Error deleting verification code: " + e.getMessage());
             throw e;
+        }
+    }
+
+    public void delete(String email) throws SQLException {
+        try (Connection conn = Database.getConnection()) {
+            delete(conn, email);
         }
     }
 
