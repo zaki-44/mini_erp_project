@@ -174,13 +174,15 @@ public class AffectationService {
                     pkg.setStatus(PackageStatus.DELIVERED);
                     packageDAO.update(conn, pkg);
                     
-                    Notification notification = new Notification();
-                    notification.setPackageId(pkg.getId());
-                    notification.setUserTargetId(pkg.getClientDestinationId());
-                    notification.setMessage("Your package has been delivered");
-                    notification.setType(NotificationType.DELIVERY_CONFIRM);
-                    notification.setRead(false);
-                    notificationDAO.insert(conn, notification);
+                    if (pkg.getClientDestinationId() != 0) {
+                        Notification notification = new Notification();
+                        notification.setPackageId(pkg.getId());
+                        notification.setUserTargetId(pkg.getClientDestinationId());
+                        notification.setMessage("Your package has been delivered");
+                        notification.setType(NotificationType.DELIVERY_CONFIRM);
+                        notification.setRead(false);
+                        notificationDAO.insert(conn, notification);
+                    }
                 }
             }
             

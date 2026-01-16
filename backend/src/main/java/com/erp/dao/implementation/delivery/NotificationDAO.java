@@ -28,7 +28,11 @@ public class NotificationDAO implements GenericDAO<Notification> {
         String sql = "INSERT INTO notification (id_package, id_user_target, message, type, is_read) VALUES (?, ?, ?, ?, ?)";
         
         try (PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
-            stmt.setInt(1, notification.getPackageId());
+            if (notification.getPackageId() == 0) {
+                stmt.setNull(1, java.sql.Types.INTEGER);
+            } else {
+                stmt.setInt(1, notification.getPackageId());
+            }
             stmt.setInt(2, notification.getUserTargetId());
             stmt.setString(3, notification.getMessage());
             stmt.setString(4, notification.getType().name());
@@ -59,7 +63,11 @@ public class NotificationDAO implements GenericDAO<Notification> {
         String sql = "UPDATE notification SET id_package=?, id_user_target=?, message=?, type=?, is_read=? WHERE id_notification=?";
         
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setInt(1, notification.getPackageId());
+            if (notification.getPackageId() == 0) {
+                stmt.setNull(1, java.sql.Types.INTEGER);
+            } else {
+                stmt.setInt(1, notification.getPackageId());
+            }
             stmt.setInt(2, notification.getUserTargetId());
             stmt.setString(3, notification.getMessage());
             stmt.setString(4, notification.getType().name());
