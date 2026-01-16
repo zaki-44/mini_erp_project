@@ -84,18 +84,20 @@ public class PackageService {
             conn.setAutoCommit(false);
             
             Package pkg = packageDAO.findById(packageId);
-            if (pkg != null) {
-                pkg.setStatus(newStatus);
-                packageDAO.update(conn, pkg);
-                
-                Notification notification = new Notification();
-                notification.setPackageId(packageId);
-                notification.setUserTargetId(userTargetId);
-                notification.setMessage("Package status updated to: " + newStatus.name());
-                notification.setType(NotificationType.STATUS_UPDATE);
-                notification.setRead(false);
-                notificationDAO.insert(conn, notification);
+            if (pkg == null) {
+                throw new SQLException("Package not found with id: " + packageId);
             }
+            
+            pkg.setStatus(newStatus);
+            packageDAO.update(conn, pkg);
+            
+            Notification notification = new Notification();
+            notification.setPackageId(packageId);
+            notification.setUserTargetId(userTargetId);
+            notification.setMessage("Package status updated to: " + newStatus.name());
+            notification.setType(NotificationType.STATUS_UPDATE);
+            notification.setRead(false);
+            notificationDAO.insert(conn, notification);
             
             conn.commit();
         } catch (SQLException e) {

@@ -66,7 +66,7 @@ CREATE TABLE affectation (
 
 CREATE TABLE notification (
     id_notification INT AUTO_INCREMENT PRIMARY KEY,
-    id_package INT NOT NULL,
+    id_package INT,
     id_user_target INT NOT NULL,
     message VARCHAR(255),
     type ENUM('STATUS_UPDATE', 'ASSIGNMENT', 'DELIVERY_CONFIRM'),
@@ -85,4 +85,23 @@ CREATE TABLE email_verification (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE verification_code (
+    email VARCHAR(255) PRIMARY KEY,
+    code VARCHAR(255) NOT NULL,
+    expires_at TIMESTAMP NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE rate (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    id_client INT NOT NULL,
+    id_deliverer INT NOT NULL,
+    score FLOAT NOT NULL,
+    comment TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (id_client) REFERENCES client(id) ON DELETE CASCADE,
+    FOREIGN KEY (id_deliverer) REFERENCES deliverer(id) ON DELETE CASCADE
 );
