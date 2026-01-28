@@ -21,6 +21,8 @@ public class DeliveryPackageServlet extends HttpServlet {
     /**
      * GET /api/packages - Get all packages
      * GET /api/packages/{id} - Get package by ID
+     * GET /api/packages?idDeliverer={delivererId} - Get packages assigned to a deliverer 
+     * GET /api/packages?idClient={clientId} - Get packages created by a client 
      */
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
@@ -33,11 +35,30 @@ public class DeliveryPackageServlet extends HttpServlet {
             String pathInfo = req.getPathInfo();
 
             if (pathInfo == null || pathInfo.equals("/")) {
-                // Get all packages
-                List<DeliveryPackage> packages = packageDAO.findAll();
-                String json = gson.toJson(packages);
-                resp.setStatus(HttpServletResponse.SC_OK);
-                out.print(json);
+                String delivererIdParam = req.getParameter("idDeliverer");
+                String clientIdParam = req.getParameter("idClient");
+
+                if (delivererIdParam != null) {
+                    // Get packages assigned to a deliverer
+                    int delivererId = Integer.parseInt(delivererIdParam);
+                    List<DeliveryPackage> packages = packageDAO.findByDelivererId(delivererId);
+                    String json = gson.toJson(packages);
+                    resp.setStatus(HttpServletResponse.SC_OK);
+                    out.print(json);
+                } else if (clientIdParam != null) {
+                    // Get packages created by a client
+                    int clientId = Integer.parseInt(clientIdParam);
+                    List<DeliveryPackage> packages = packageDAO.findByClientId(clientId);
+                    String json = gson.toJson(packages);
+                    resp.setStatus(HttpServletResponse.SC_OK);
+                    out.print(json);
+                } else {
+                    // Get all packages
+                    List<DeliveryPackage> packages = packageDAO.findAll();
+                    String json = gson.toJson(packages);
+                    resp.setStatus(HttpServletResponse.SC_OK);
+                    out.print(json);
+                }
             } else {
                 // Get package by ID
                 String[] splits = pathInfo.split("/");

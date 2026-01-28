@@ -29,7 +29,6 @@ public class AdminServlet extends HttpServlet {
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        setAccessControlHeaders(resp);
 
         String pathInfo = req.getPathInfo();
         String role = (String) req.getAttribute("userRole");
@@ -56,8 +55,6 @@ public class AdminServlet extends HttpServlet {
 
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        setAccessControlHeaders(resp);
-
         String pathInfo = req.getPathInfo();
         String role = (String) req.getAttribute("userRole");
         if (role == null || !role.equals("ADMIN")) {
@@ -90,10 +87,4 @@ public class AdminServlet extends HttpServlet {
         }
     }
     
-    // CORS Helper
-    private void setAccessControlHeaders(HttpServletResponse resp) {
-        resp.setHeader("Access-Control-Allow-Origin", "http://localhost:5173");
-        resp.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-        resp.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-    }
 }

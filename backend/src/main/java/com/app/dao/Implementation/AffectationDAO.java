@@ -147,7 +147,31 @@ public class AffectationDAO implements DAO<Affectation> {
 
         return list;
     }
-    
+    public List<Affectation> findByClientId(int clientId) throws SQLException {
+        String sql = "SELECT a.* FROM affectation a "
+                   + "JOIN package p ON a.id_package = p.id_package "
+                   + "WHERE p.id_client_source = ? OR p.id_client_destination = ?";
+        List<Affectation> list = new ArrayList<>();
+
+        try (Connection conn = Database.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, clientId);
+            stmt.setInt(2, clientId);
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapAffectation(rs));
+                }
+            }
+        }
+        catch(SQLException e) {
+            System.out.println("Error finding Affectations by Client ID: " + e.getMessage());
+            throw e;
+        }
+
+        return list;
+    }
     private Affectation mapAffectation(ResultSet rs) throws SQLException {
         Affectation a = new Affectation();
 
