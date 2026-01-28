@@ -32,7 +32,12 @@ public class AdminServlet extends HttpServlet {
         setAccessControlHeaders(resp);
 
         String pathInfo = req.getPathInfo();
-
+        String role = (String) req.getAttribute("userRole");
+        if (role == null || !role.equals("ADMIN")) {
+            resp.setStatus(HttpServletResponse.SC_FORBIDDEN);
+            resp.getWriter().write("{\"error\": \"Forbidden\"}");
+            return;
+        }
         // Route: GET /api/admin/pending-deliverers
         if ("/pending-deliverers".equals(pathInfo)) {
             try{
@@ -54,7 +59,12 @@ public class AdminServlet extends HttpServlet {
         setAccessControlHeaders(resp);
 
         String pathInfo = req.getPathInfo();
-
+        String role = (String) req.getAttribute("userRole");
+        if (role == null || !role.equals("ADMIN")) {
+            resp.setStatus(HttpServletResponse.SC_FORBIDDEN);
+            resp.getWriter().write("{\"error\": \"Forbidden\"}");
+            return;
+        }
         // Route: POST /api/admin/approve?id=5
         if ("/approve".equals(pathInfo)) {
             String idParam = req.getParameter("id");

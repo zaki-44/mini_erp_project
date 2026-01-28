@@ -18,7 +18,11 @@ public class RateService {
         Rate rate = new Rate(idDeliverer, idClient, rating, comment, currentDate);
         rateDAO.update(rate);
     }
-    public void deleteRate(int id) {
+    public void deleteRate(int id , int idClient) {
+        if(rateDAO.findById(id).getIdClient() != idClient){
+            System.out.println("Error deleting rate: you can only delete your own rates");
+            return;
+        }
         rateDAO.delete(id);
     }
     public Rate getRateById(int id) {

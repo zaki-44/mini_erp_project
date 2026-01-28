@@ -76,6 +76,12 @@ public class RateServlet extends HttpServlet {
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         resp.setContentType("application/json");
         PrintWriter out = resp.getWriter();
+        String role = (String) req.getAttribute("userRole");
+        if(role == null || !role.equals("CLIENT")){
+            resp.setStatus(HttpServletResponse.SC_FORBIDDEN);
+            out.print("{\"error\": \"Forbidden only for clients\"}");
+            return;
+        }
         Integer userId = (Integer) req.getAttribute("userId");
         if(userId == null){
             resp.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
@@ -114,7 +120,12 @@ public class RateServlet extends HttpServlet {
     protected void doPut(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         resp.setContentType("application/json");
         PrintWriter out = resp.getWriter();
-
+        String role = (String) req.getAttribute("userRole");
+        if(role == null || !role.equals("CLIENT")){
+            resp.setStatus(HttpServletResponse.SC_FORBIDDEN);
+            out.print("{\"error\": \"Forbidden only for clients\"}");
+            return;
+        }
         try {
             BufferedReader reader = req.getReader();
             Rate rate = gson.fromJson(reader, Rate.class);
@@ -146,7 +157,19 @@ public class RateServlet extends HttpServlet {
     protected void doDelete(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         resp.setContentType("application/json");
         PrintWriter out = resp.getWriter();
-
+        String role = (String) req.getAttribute("userRole");
+        if(role == null || !role.equals("CLIENT")){
+            resp.setStatus(HttpServletResponse.SC_FORBIDDEN);
+            out.print("{\"error\": \"Forbidden only for clients\"}");
+            return;
+        }
+        Integer userId = (Integer) req.getAttribute("userId");
+        if(userId == null){
+            resp.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            out.print("{\"error\": \"Unauthorized\"}");
+            return;
+        }
+        int idClient = userId;
         try {
             String pathInfo = req.getPathInfo();
             if (pathInfo == null || pathInfo.equals("/")) {
@@ -156,7 +179,7 @@ public class RateServlet extends HttpServlet {
             }
 
             int id = Integer.parseInt(pathInfo.split("/")[1]);
-            rateService.deleteRate(id);
+            rateService.deleteRate(id , idClient);
 
             out.print("{\"message\": \"Rating deleted successfully\"}");
 
