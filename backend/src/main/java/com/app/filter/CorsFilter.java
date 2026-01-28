@@ -11,10 +11,15 @@ public class CorsFilter implements Filter {
     @Override
     public void doFilter(ServletRequest req, ServletResponse res, FilterChain chain)
         throws IOException, ServletException {
+        HttpServletRequest request = (HttpServletRequest) req;
         HttpServletResponse response = (HttpServletResponse) res;
         response.setHeader("Access-Control-Allow-Origin", "http://localhost:5173");
         response.setHeader("Access-Control-Allow-Methods", "*"); // allow all methods
         response.setHeader("Access-Control-Allow-Headers", "Content-Type");
-        chain.doFilter(req, res);
+        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+            response.setStatus(HttpServletResponse.SC_OK);
+        } else {
+            chain.doFilter(req, res);
+        }
     }
 }

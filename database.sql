@@ -86,3 +86,14 @@ CREATE TABLE email_verification (
 
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
+--@block
+CREATE TABLE rate(
+    id_rate INT AUTO_INCREMENT PRIMARY KEY,
+    id_deliverer INT NOT NULL,
+    id_client INT NOT NULL,
+    rating DOUBLE CHECK (rating >= 1 AND rating <= 5),
+    comment TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (id_deliverer) REFERENCES deliverer(id) ON DELETE CASCADE,
+    FOREIGN KEY (id_client) REFERENCES client(id) ON DELETE CASCADE
+);

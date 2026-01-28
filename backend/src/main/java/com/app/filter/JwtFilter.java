@@ -20,6 +20,7 @@ public class JwtFilter implements Filter {
         HttpServletResponse response = (HttpServletResponse) res;
 
         String token = null;
+    
 
         if (request.getCookies() != null) {
             for (Cookie cookie : request.getCookies()) {
@@ -29,21 +30,14 @@ public class JwtFilter implements Filter {
                 }
             }
         }
-        String path = request.getRequestURI();
         if (token != null) {
             DecodedJWT jwt = JWTUtil.validateToken(token);
+            int id = JWTUtil.getUserId(jwt);
             String role = JWTUtil.getRole(jwt);
 
             if (jwt != null) {
-                request.setAttribute("userId", JWTUtil.getUserId(jwt));
-                request.setAttribute("userRole", JWTUtil.getRole(jwt));
-                //TODO : Add role-based access control here
-                // if((path.startsWith("/api/admin/") || path.startsWith("/api/packages")) && !"ADMIN".equals(role)) {
-                //     response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-                //     response.setContentType("application/json");
-                //     response.getWriter().write("{\"error\":\"Forbidden\"}");
-                //     return;
-                // }
+                request.setAttribute("userId", id);
+                request.setAttribute("userRole", role);
                 chain.doFilter(request, response);
                 return;
             }
