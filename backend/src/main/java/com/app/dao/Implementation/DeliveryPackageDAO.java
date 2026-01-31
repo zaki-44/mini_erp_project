@@ -192,4 +192,26 @@ public class DeliveryPackageDAO implements DAO<DeliveryPackage> {
 
         return pkg;
     }
+
+    public boolean ownsPackage(int userId, int packageId) throws SQLException {
+        String sql = "SELECT COUNT(*) AS count FROM package WHERE id_package = ? AND " +
+                     "(id_client_source = ? OR id_client_destination = ?)";
+        boolean owns = false;
+
+        try (Connection conn = Database.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, packageId);
+            stmt.setInt(2, userId);
+            stmt.setInt(3, userId);
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    owns = rs.getInt("count") > 0;
+                }
+            }
+        }
+
+        return owns;
+    }
 }

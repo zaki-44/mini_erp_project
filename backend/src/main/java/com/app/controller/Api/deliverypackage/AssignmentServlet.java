@@ -118,7 +118,7 @@ public class AssignmentServlet extends HttpServlet {
                         out.print("{\"error\": \"Only clients can request drivers\"}");
                         return;
                     }
-                    handleRequestDriver(id, out);
+                    handleRequestDriver(id, userId, out);
                     break;
 
                 case "accept":
@@ -159,7 +159,11 @@ public class AssignmentServlet extends HttpServlet {
         }
     }
 
-    private void handleRequestDriver(int packageId, PrintWriter out) {
+    private void handleRequestDriver(int packageId, int userId, PrintWriter out) throws SQLException {
+        if(!packageDAO.ownsPackage(userId, packageId)){
+            out.print("{\"error\": \"You do not own this package.\"}");
+            return;
+        }
         Deliverer match = assignmentService.autoAssignPackage(packageId);
 
         JsonObject json = new JsonObject();

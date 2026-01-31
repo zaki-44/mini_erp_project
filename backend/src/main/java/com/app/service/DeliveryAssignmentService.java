@@ -19,7 +19,7 @@ public class DeliveryAssignmentService {
     private DelivererDAO delivererDAO;
     private DeliveryPackageDAO packageDAO;
     private AffectationDAO affectationDAO;
-    
+    private NotificationService notificationService;
     private static final double VEHICLE_MATCH_WEIGHT = 40.0;
     private static final double WORKLOAD_PENALTY_PER_ASSIGNMENT = 10.0;
     private static final double PERFORMANCE_BONUS_MAX = 20.0;
@@ -182,12 +182,15 @@ public class DeliveryAssignmentService {
                                                 AffectationStatus.PENDING, new Timestamp(System.currentTimeMillis()));
                 
                 pkg.setStatus(PackageStatus.ASSIGNED);
-                //TODO :
-                // Create other insert and update operations that have a conn parameter then do autocommit off
-                // conn.setAutoCommit(false); and pass the connection
                 affectationDAO.insert(aff);
                 delivererDAO.update(bestDeliverer); 
-                packageDAO.update(pkg);
+                packageDAO.update(pkg); 
+                notificationService.sendAssignmentNotification(
+                    pkg.getIdClientDestination(), 
+                    pkg.getIdClientSource(), 
+                    bestDeliverer.getId(), 
+                    pkg.getIdPackage()
+                );
 
                 return bestDeliverer;
             }

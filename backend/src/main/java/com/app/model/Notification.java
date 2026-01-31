@@ -25,6 +25,15 @@ public class Notification {
         this.isRead = isRead;
         this.dateNotif = dateNotif;
     }
+    public Notification(int idPackage, int idUserTarget, String message,
+                        NotificationType type, Timestamp dateNotif) {
+        this.idPackage = idPackage;
+        this.idUserTarget = idUserTarget;
+        this.message = message;
+        this.type = type;
+        this.isRead = false;
+        this.dateNotif = dateNotif;
+    }
 
     // Getters and Setters
     public int getIdNotification() { return idNotification; }
