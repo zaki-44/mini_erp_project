@@ -68,15 +68,22 @@ public class AdminServlet extends HttpServlet {
             if (idParam != null) {
                 try {
                     int userId = Integer.parseInt(idParam);
-                    boolean success = userDAO.approveDeliverer(userId);
-                    
-                    if (success) {
-                        resp.getWriter().write("{\"message\": \"Deliverer Approved Successfully\"}");
-                    } else {
-                        resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-                        resp.getWriter().write("{\"error\": \"Failed to approve\"}");
+                    Deliverer deliverer = delivererDAO.findById(userId);
+                    if(deliverer.getRole().equals("DELIVERER")){
+                        boolean success = userDAO.approveDeliverer(userId);
+                        
+                        if (success) {
+                            resp.getWriter().write("{\"message\": \"Deliverer Approved Successfully\"}");
+                        } else {
+                            resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                            resp.getWriter().write("{\"error\": \"Failed to approve\"}");
+                        }
                     }
-                } catch (NumberFormatException e) {
+                    else{
+                        resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                        resp.getWriter().write("{\"error\": \"User is not a deliverer\"}");
+                    }
+                } catch (Exception e) {
                     resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
                     resp.getWriter().write("{\"error\": \"Invalid ID format\"}");
                 }
