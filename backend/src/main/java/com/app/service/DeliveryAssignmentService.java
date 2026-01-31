@@ -37,6 +37,7 @@ public class DeliveryAssignmentService {
         this.delivererDAO = new DelivererDAO();
         this.packageDAO = new DeliveryPackageDAO();
         this.affectationDAO = new AffectationDAO();
+        this.notificationService = new NotificationService();
     }
     
     private double calculateVehicleScore(Deliverer deliverer, DeliveryPackage pkg) {
@@ -185,6 +186,7 @@ public class DeliveryAssignmentService {
                 affectationDAO.insert(aff);
                 delivererDAO.update(bestDeliverer); 
                 packageDAO.update(pkg); 
+                System.out.println("Package ID " + pkg.getIdPackage() + " assigned to Deliverer ID " + bestDeliverer);
                 notificationService.sendAssignmentNotification(
                     pkg.getIdClientDestination(), 
                     pkg.getIdClientSource(), 
