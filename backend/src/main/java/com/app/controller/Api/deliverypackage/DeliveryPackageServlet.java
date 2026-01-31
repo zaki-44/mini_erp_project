@@ -95,7 +95,14 @@ public class DeliveryPackageServlet extends HttpServlet {
         resp.setContentType("application/json");
         resp.setCharacterEncoding("UTF-8");
         PrintWriter out = resp.getWriter();
-
+        Integer userId = (Integer) req.getAttribute("userId");
+        String role = (String) req.getAttribute("userRole");
+        if (userId == null || role == null || !role.equals("CLIENT")) {
+            resp.setStatus(HttpServletResponse.SC_FORBIDDEN);
+            out.print("{\"error\": \"Only clients can create packages\"}");
+            return;
+        }
+        int clientId = userId;
         try {
             // Read JSON from request body
             BufferedReader reader = req.getReader();
@@ -116,6 +123,7 @@ public class DeliveryPackageServlet extends HttpServlet {
             }
 
             // Insert into database
+            pkg.setIdClientSource(clientId);
             packageDAO.insert(pkg);
             // Return created package
             String json = gson.toJson(pkg);
@@ -143,6 +151,15 @@ public class DeliveryPackageServlet extends HttpServlet {
         resp.setCharacterEncoding("UTF-8");
         PrintWriter out = resp.getWriter();
 
+        Integer userId = (Integer) req.getAttribute("userId");
+        String role = (String) req.getAttribute("userRole");
+        if (userId == null || role == null || !role.equals("CLIENT")) {
+            resp.setStatus(HttpServletResponse.SC_FORBIDDEN);
+            out.print("{\"error\": \"Only clients can update packages\"}");
+            return;
+        }
+        int clientId = userId;
+
         try {
             String pathInfo = req.getPathInfo();
             if (pathInfo == null || pathInfo.equals("/")) {
@@ -156,10 +173,14 @@ public class DeliveryPackageServlet extends HttpServlet {
 
             // 1. FETCH EXISTING DATA FIRST (Crucial Step!)
             DeliveryPackage existing = packageDAO.findById(id);
-            
             if (existing == null) {
                 resp.setStatus(HttpServletResponse.SC_NOT_FOUND);
                 out.print("{\"error\": \"Package not found\"}");
+                return;
+            }
+            if (existing.getIdClientSource() != clientId) {
+                resp.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                out.print("{\"error\": \"You do not own this package.\"}");
                 return;
             }
 
@@ -207,7 +228,14 @@ public class DeliveryPackageServlet extends HttpServlet {
         resp.setContentType("application/json");
         resp.setCharacterEncoding("UTF-8");
         PrintWriter out = resp.getWriter();
-
+        Integer userId = (Integer) req.getAttribute("userId");
+        String role = (String) req.getAttribute("userRole");
+        if (userId == null || role == null || !role.equals("CLIENT")) {
+            resp.setStatus(HttpServletResponse.SC_FORBIDDEN);
+            out.print("{\"error\": \"Only clients can delete packages\"}");
+            return;
+        }
+        int clientId = userId;
         try {
             String pathInfo = req.getPathInfo();
 
@@ -225,6 +253,11 @@ public class DeliveryPackageServlet extends HttpServlet {
             if (existing == null) {
                 resp.setStatus(HttpServletResponse.SC_NOT_FOUND);
                 out.print("{\"error\": \"Package not found\"}");
+                return;
+            }
+            if (existing.getIdClientSource() != clientId) {
+                resp.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                out.print("{\"error\": \"You do not own this package.\"}");
                 return;
             }
 
