@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback } from './ui/avatar';
 import { StatusBadge } from './StatusBadge';
 import { MapPin, Package, LogOut, CheckCircle, Truck, User as UserIcon, Search, Loader2 } from 'lucide-react';
 import type { Order, DeliveryHistory } from '../types';
-import { fetchOrders, fetchDeliveryHistory, updateOrderStatus, createDeliveryHistory } from '../lib/api';
+import { fetchOrders, updateOrderStatus } from '../lib/api';
 import { mockOrders, mockDeliveryHistory } from '../lib/mockData';
 
 interface AuthUser {

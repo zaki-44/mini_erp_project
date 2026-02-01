@@ -14,12 +14,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { AlertDescription } from "./ui/alert"
 
 export interface RegisterData {
-  name: string;
+  firstname: string;
+  lastname: string;
+  username: string;
   email: string;
   password: string;
-  phone: string;
-  type: 'client' | 'livreur';
+  phonenumber: string;
+  role: 'client' | 'livreur';
   address?: string;
+  city: string;
+  postalcode?: number;
+  vegicletype?: 'BIKE' | 'CAR' | 'TRUCK';
+  maxweight?: number;
+  serialnumber?: string;
 }
 
 interface RegisterPageProps {
@@ -30,12 +37,14 @@ interface RegisterPageProps {
 
 export function RegisterPage({ onRegister, onBackToLogin, className, ...props }: RegisterPageProps) {
   const [formData, setFormData] = useState<RegisterData>({
-    name: '',
+    firstname: '',
+    lastname: '',
+    username: '',
     email: '',
     password: '',
-    phone: '',
-    type: 'client',
-    address: '',
+    phonenumber: '',
+    role: 'client',
+    city: '',
   });
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
@@ -47,12 +56,12 @@ export function RegisterPage({ onRegister, onBackToLogin, className, ...props }:
     setSuccess(false);
 
     // Validation
-    if (!formData.name || !formData.email || !formData.password || !formData.phone) {
+    if (!formData.firstname || !formData.email || !formData.password || !formData.phonenumber) {
       setError('Please fill in all required fields');
       return;
     }
 
-    if (formData.type === 'livreur' && !formData.address) {
+    if (formData.role === 'livreur' && !formData.address) {
       setError('Address is required for delivery persons');
       return;
     }
@@ -76,7 +85,7 @@ export function RegisterPage({ onRegister, onBackToLogin, className, ...props }:
 
     // Phone validation (basic)
     const phoneRegex = /^[0-9+\-\s()]+$/;
-    if (!phoneRegex.test(formData.phone)) {
+    if (!phoneRegex.test(formData.phonenumber)) {
       setError('Please enter a valid phone number');
       return;
     }
@@ -112,11 +121,12 @@ export function RegisterPage({ onRegister, onBackToLogin, className, ...props }:
                   </p>
                 </div>
 
+                {/* account type */}
                 <Field>
                   <FieldLabel htmlFor="type">Account Type *</FieldLabel>
                   <Select
-                    value={formData.type}
-                    onValueChange={(value) => handleChange('type', value as 'client' | 'livreur')}
+                    value={formData.role}
+                    onValueChange={(value) => handleChange('role', value as 'client' | 'livreur')}
                   >
                     <SelectTrigger id="type">
                       <SelectValue />
@@ -128,18 +138,42 @@ export function RegisterPage({ onRegister, onBackToLogin, className, ...props }:
                   </Select>
                 </Field>
 
+                {/* names */}
                 <Field>
-                  <FieldLabel htmlFor="name">Full Name *</FieldLabel>
+                  <FieldLabel htmlFor="firstname">First Name *</FieldLabel>
                   <Input
                     id="name"
                     type="text"
-                    placeholder="Enter your full name"
-                    value={formData.name}
-                    onChange={(e) => handleChange('name', e.target.value)}
+                    placeholder="Enter your first name"
+                    value={formData.firstname}
+                    onChange={(e) => handleChange('firstname', e.target.value)}
+                    required
+                  />
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor="lastname">Last Name *</FieldLabel>
+                  <Input
+                    id="name"
+                    type="text"
+                    placeholder="Enter your last name"
+                    value={formData.lastname}
+                    onChange={(e) => handleChange('lastname', e.target.value)}
+                    required
+                  />
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor="username">Username *</FieldLabel>
+                  <Input
+                    id="username"
+                    type="text"
+                    placeholder="Enter your username"
+                    value={formData.username}
+                    onChange={(e) => handleChange('username', e.target.value)}
                     required
                   />
                 </Field>
 
+                {/* email */}
                 <Field>
                   <FieldLabel htmlFor="email">Email *</FieldLabel>
                   <Input
@@ -156,20 +190,20 @@ export function RegisterPage({ onRegister, onBackToLogin, className, ...props }:
                 </Field>
 
                 <Field>
-                  <FieldLabel htmlFor="phone">Phone Number *</FieldLabel>
+                  <FieldLabel htmlFor="phonenumber">Phone Number *</FieldLabel>
                   <Input
-                    id="phone"
+                    id="phonenumber"
                     type="tel"
                     placeholder="+33 6 12 34 56 78"
-                    value={formData.phone}
-                    onChange={(e) => handleChange('phone', e.target.value)}
+                    value={formData.phonenumber}
+                    onChange={(e) => handleChange('phonenumber', e.target.value)}
                     required
                   />
                 </Field>
 
                 <Field>
                   <FieldLabel htmlFor="address">
-                    Address {formData.type === 'livreur' && '*'}
+                    Address {formData.role === 'livreur' && '*'}
                   </FieldLabel>
                   <Input
                     id="address"
@@ -177,9 +211,9 @@ export function RegisterPage({ onRegister, onBackToLogin, className, ...props }:
                     placeholder="Enter your address"
                     value={formData.address}
                     onChange={(e) => handleChange('address', e.target.value)}
-                    required={formData.type === 'livreur'}
+                    required={formData.role === 'livreur'}
                   />
-                  {formData.type === 'livreur' && (
+                  {formData.role === 'livreur' && (
                     <FieldDescription>
                       Required for delivery persons to show nearby deliveries
                     </FieldDescription>

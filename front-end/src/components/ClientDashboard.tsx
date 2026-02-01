@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { StatusBadge } from './StatusBadge';
 import { Plus, MapPin, Package, LogOut, Send, Inbox, CheckCircle, X, Search, Loader2 } from 'lucide-react';
 import type { Order, User } from '../types';
-import { fetchOrders, fetchUsers, createOrder, updateOrderStatus } from '../lib/api';
+import { fetchOrders, createOrder, updateOrderStatus } from '../lib/api';
 import { mockOrders, mockUsers } from '../lib/mockData';
 
 interface AuthUser {
