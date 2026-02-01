@@ -1,5 +1,7 @@
 # mini_erp_project
 
+this is a university project made by 10 persons using java 
+
 This is a university project developed by 10 students using Java.
 
 ## Setup Instructions
@@ -13,5 +15,7 @@ DB_URL=YourDB_URL<br>
 DB_USER=YourDB_USERNAME<br>
 DB_PASSWORD=YourDBPassword <br>
 
+
+Make sure to replace `YourDB_URL`, `YourDB_USERNAME`, and `YourDBPassword` with your actual database credential
 
 Make sure to replace `YourDB_URL`, `YourDB_USERNAME`, and `YourDBPassword` with your actual database credentials
