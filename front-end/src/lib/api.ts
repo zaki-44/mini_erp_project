@@ -47,7 +47,7 @@ export async function login(email: string, password: string): Promise<LoginRespo
   // Backend expects 'username', so we map email -> username
   return apiFetch<LoginResponse>('/login', {
     method: 'POST',
-    body: JSON.stringify({ username: email, password }),
+    body: JSON.stringify({ email, password }),
   });
 }
 
