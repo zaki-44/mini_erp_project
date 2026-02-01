@@ -184,7 +184,7 @@ export function RegisterPage({ onRegister, onBackToLogin, className, ...props }:
                     onChange={(e) => handleChange('email', e.target.value)}
                     required
                   />
-                  <FieldDescription>
+                  <FieldDescription className='text-sm '>
                     We&apos;ll use this to contact you. We will not share your email with anyone else.
                   </FieldDescription>
                 </Field>
