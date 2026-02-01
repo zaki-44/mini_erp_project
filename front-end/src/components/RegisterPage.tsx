@@ -20,11 +20,11 @@ export interface RegisterData {
   email: string;
   password: string;
   phonenumber: string;
-  role: 'client' | 'livreur';
-  address?: string;
+  role: 'CLIENT' | 'DELIVERER';
+  address?: string; 
   city: string;
   postalcode?: number;
-  vegicletype?: 'BIKE' | 'CAR' | 'TRUCK';
+  vehicletype?: 'BIKE' | 'CAR' | 'TRUCK';
   maxweight?: number;
   serialnumber?: string;
 }
@@ -32,10 +32,11 @@ export interface RegisterData {
 interface RegisterPageProps {
   onRegister: (userData: RegisterData) => void;
   onBackToLogin: () => void;
+  onVerification: (email: string) => void;
   className?: string;
 }
 
-export function RegisterPage({ onRegister, onBackToLogin, className, ...props }: RegisterPageProps) {
+export function RegisterPage({ onRegister, onBackToLogin, onVerification, className, ...props }: RegisterPageProps) {
   const [formData, setFormData] = useState<RegisterData>({
     firstname: '',
     lastname: '',
@@ -43,7 +44,7 @@ export function RegisterPage({ onRegister, onBackToLogin, className, ...props }:
     email: '',
     password: '',
     phonenumber: '',
-    role: 'client',
+    role: 'CLIENT',
     city: '',
   });
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -61,7 +62,7 @@ export function RegisterPage({ onRegister, onBackToLogin, className, ...props }:
       return;
     }
 
-    if (formData.role === 'livreur' && !formData.address) {
+    if (formData.role === 'DELIVERER' && !formData.address) {
       setError('Address is required for delivery persons');
       return;
     }
@@ -94,10 +95,10 @@ export function RegisterPage({ onRegister, onBackToLogin, className, ...props }:
     try {
       await onRegister(formData);
       setSuccess(true);
-      // Show success message for 2 seconds then redirect to login
+      // Show success message for 1.5 seconds then redirect to verification page
       setTimeout(() => {
-        onBackToLogin();
-      }, 2000);
+        onVerification(formData.email);
+      }, 1500);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Registration failed. Please try again.');
     }
@@ -132,8 +133,8 @@ export function RegisterPage({ onRegister, onBackToLogin, className, ...props }:
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="client">Client (Sender/Receiver)</SelectItem>
-                      <SelectItem value="livreur">Delivery Person</SelectItem>
+                      <SelectItem value="CLIENT">Client (Sender/Receiver)</SelectItem>
+                      <SelectItem value="DELIVERER">Delivery Person</SelectItem>
                     </SelectContent>
                   </Select>
                 </Field>
@@ -184,11 +185,12 @@ export function RegisterPage({ onRegister, onBackToLogin, className, ...props }:
                     onChange={(e) => handleChange('email', e.target.value)}
                     required
                   />
-                  <FieldDescription className='text-sm '>
+                  <FieldDescription className='text-xs'>
                     We&apos;ll use this to contact you. We will not share your email with anyone else.
                   </FieldDescription>
                 </Field>
 
+                {/* phone number */}
                 <Field>
                   <FieldLabel htmlFor="phonenumber">Phone Number *</FieldLabel>
                   <Input
@@ -201,25 +203,106 @@ export function RegisterPage({ onRegister, onBackToLogin, className, ...props }:
                   />
                 </Field>
 
+
+                {/* client only fields */}
+                {formData.role === 'CLIENT' && (
+                  <>
+                    <Field>
+                    <FieldLabel htmlFor="address">
+                      Address *
+                    </FieldLabel>
+                    <Input
+                      id="address"
+                      type="text"
+                      placeholder="Enter your address"
+                      value={formData.address}
+                      onChange={(e) => handleChange('address', e.target.value)}
+                      required={formData.role === 'CLIENT'}
+                    />
+                    </Field>
+
+                    <Field>
+                    <FieldLabel htmlFor="postalcode">
+                      Postal Code *
+                    </FieldLabel>
+                    <Input
+                      id="postalcode"
+                      type="number"
+                      placeholder="Enter your postalcode"
+                      value={formData.postalcode}
+                      onChange={(e) => handleChange('postalcode', e.target.value)}
+                      required={formData.role === 'CLIENT'}
+                      />
+                    </Field>
+                  </>
+                )}
+
+                {/* city */}
                 <Field>
-                  <FieldLabel htmlFor="address">
-                    Address {formData.role === 'livreur' && '*'}
-                  </FieldLabel>
-                  <Input
-                    id="address"
-                    type="text"
-                    placeholder="Enter your address"
-                    value={formData.address}
-                    onChange={(e) => handleChange('address', e.target.value)}
-                    required={formData.role === 'livreur'}
-                  />
-                  {formData.role === 'livreur' && (
-                    <FieldDescription>
-                      Required for delivery persons to show nearby deliveries
-                    </FieldDescription>
-                  )}
+                    <FieldLabel htmlFor="city">
+                      City *
+                    </FieldLabel>
+                    <Input
+                      id="city"
+                      type="text"
+                      placeholder="Enter your city"
+                      value={formData.city}
+                      onChange={(e) => handleChange('city', e.target.value)}
+                      required={formData.role === 'CLIENT'}
+                      />
                 </Field>
 
+                {/* livreur only fields */}
+                {formData.role === 'DELIVERER' &&(
+                  <>
+                    <Field>
+                      <FieldLabel htmlFor="vehicletype">
+                      Vehicle type *
+                      </FieldLabel>
+                      <Select
+                        value={formData.vehicletype}
+                        onValueChange={(value) => handleChange('vehicletype', value as 'BIKE' | 'CAR' | 'TRUCK')}
+                        >
+                        <SelectTrigger id="vehicletype">
+                        <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="BIKE">BIKE</SelectItem>
+                            <SelectItem value="CAR">CAR</SelectItem>
+                            <SelectItem value="TRUCK">TRUCK</SelectItem>
+                          </SelectContent>
+                        </Select>
+                    </Field>
+                    <Field>
+                      <FieldLabel htmlFor="maxweight">
+                      Max weight *
+                      </FieldLabel>
+                      <Input
+                        id="maxweight"
+                        type="number"
+                        placeholder="Enter your maxweight"
+                        value={formData.maxweight}
+                        onChange={(e) => handleChange('maxweight', e.target.value)}
+                        required={formData.role === 'DELIVERER'}
+                        />
+                    </Field>
+                    <Field>
+                      <FieldLabel htmlFor="serialnumber">
+                      Serial number *
+                      </FieldLabel>
+                      <Input
+                        id="serialnumber"
+                        type="text"
+                        placeholder="Enter your serialnumber"
+                        value={formData.serialnumber}
+                        onChange={(e) => handleChange('serialnumber', e.target.value)}
+                        required={formData.role === 'DELIVERER'}
+                        />
+                    </Field>
+                  </>
+                )}
+
+                {/* password */}
                 <Field>
                   <Field className="grid grid-cols-2 gap-4">
                     <Field>
@@ -245,7 +328,7 @@ export function RegisterPage({ onRegister, onBackToLogin, className, ...props }:
                       />
                     </Field>
                   </Field>
-                  <FieldDescription>
+                  <FieldDescription className='text-xs'>
                     Must be at least 6 characters long.
                   </FieldDescription>
                 </Field>
@@ -259,7 +342,7 @@ export function RegisterPage({ onRegister, onBackToLogin, className, ...props }:
                 {success && (
                   <div className="bg-green-50 text-green-900 p-3 rounded-lg border border-green-200">
                     <AlertDescription>
-                      Registration successful! Your account is pending approval by an administrator. Redirecting to login...
+                      Registration successful! Please check your email for a verification code. Redirecting to verification...
                     </AlertDescription>
                   </div>
                 )}
@@ -270,7 +353,7 @@ export function RegisterPage({ onRegister, onBackToLogin, className, ...props }:
                   </Button>
                 </Field>
 
-                <FieldSeparator className="*:data-[slot=field-separator-content]:bg-card">
+                {/* <FieldSeparator className="*:data-[slot=field-separator-content]:bg-card">
                   Or continue with
                 </FieldSeparator>
 
@@ -302,7 +385,7 @@ export function RegisterPage({ onRegister, onBackToLogin, className, ...props }:
                     </svg>
                     <span className="sr-only">Sign up with Meta</span>
                   </Button>
-                </Field>
+                </Field> */}
 
                 <FieldDescription className="text-center">
                   Already have an account?{' '}

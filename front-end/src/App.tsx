@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { LoginPage } from './components/LoginPage';
 import { RegisterPage } from './components/RegisterPage';
+import { EmailVerificationPage } from './components/EmailVerificationPage';
 import type { RegisterData } from './components/RegisterPage';
 import { AdminDashboard } from './components/AdminDashboard';
 import { ClientDashboard } from './components/ClientDashboard';
@@ -8,7 +9,7 @@ import { LivreurDashboard } from './components/LivreurDashboard';
 import { register, logout as apiLogout } from './lib/api';
 
 type UserType = 'admin' | 'client' | 'livreur';
-type AppView = 'login' | 'register' | 'dashboard';
+type AppView = 'login' | 'register' | 'verify' | 'dashboard';
 
 interface AuthUser {
   id: string;
@@ -20,6 +21,7 @@ interface AuthUser {
 export default function App() {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [view, setView] = useState<AppView>('login');
+  const [verificationEmail, setVerificationEmail] = useState<string>('');
 
   const handleLogin = (userData: AuthUser) => {
     setUser(userData);
@@ -34,7 +36,7 @@ export default function App() {
 
   const handleRegister = async (registerData: RegisterData) => {
     await register(registerData);
-    // Registration successful, will redirect to login via RegisterPage
+    // Registration successful, will redirect to verification via RegisterPage
   };
 
   const handleShowRegister = () => {
@@ -45,8 +47,22 @@ export default function App() {
     setView('login');
   };
 
+  const handleVerification = (email: string) => {
+    setVerificationEmail(email);
+    setView('verify');
+  };
+
+  const handleVerificationSuccess = () => {
+    setView('login');
+    setVerificationEmail('');
+  };
+
   if (view === 'register') {
-    return <RegisterPage onRegister={handleRegister} onBackToLogin={handleBackToLogin} />;
+    return <RegisterPage onRegister={handleRegister} onBackToLogin={handleBackToLogin} onVerification={handleVerification} />;
+  }
+
+  if (view === 'verify') {
+    return <EmailVerificationPage email={verificationEmail} onVerificationSuccess={handleVerificationSuccess} onBackToLogin={handleBackToLogin} />;
   }
 
   if (!user || view === 'login') {
