@@ -47,7 +47,12 @@ export function LoginPage({ onLogin, onShowRegister, className, ...props }: Logi
 
     try {
       const response = await login(email, password);
-      onLogin(response.user);
+      onLogin({
+        id: String(response.userId),
+        name: response.name || '',
+        email: email,
+        type: response.role === 'ADMIN' ? 'admin' : response.role === 'CLIENT' ? 'client' : 'livreur',
+      });
     } catch (err) {
       // Fallback to mock users if API fails (for development)
       const user = mockUsers.find(u => u.email === email && u.password === password);
@@ -74,7 +79,12 @@ export function LoginPage({ onLogin, onShowRegister, className, ...props }: Logi
 
     try {
       const response = await login(userEmail, userPassword);
-      onLogin(response.user);
+      onLogin({
+        id: String(response.userId),
+        name: response.name || '',
+        email: userEmail,
+        type: response.role === 'ADMIN' ? 'admin' : response.role === 'CLIENT' ? 'client' : 'livreur',
+      });
     } catch (err) {
       // Fallback to mock users if API fails
       const user = mockUsers.find(u => u.email === userEmail && u.password === userPassword);
@@ -153,7 +163,7 @@ export function LoginPage({ onLogin, onShowRegister, className, ...props }: Logi
                   </Button>
                 </Field>
                 
-                <FieldSeparator className="*:data-[slot=field-separator-content]:bg-card">
+                {/* <FieldSeparator className="*:data-[slot=field-separator-content]:bg-card">
                   Or continue with
                 </FieldSeparator>
                 
@@ -200,7 +210,7 @@ export function LoginPage({ onLogin, onShowRegister, className, ...props }: Logi
                     </svg>
                     <span className="sr-only">Delivery</span>
                   </Button>
-                </Field>
+                </Field> */}
                 <FieldDescription className="text-center">
                   Don&apos;t have an account?{' '}
                   <Button
