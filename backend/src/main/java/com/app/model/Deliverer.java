@@ -4,9 +4,9 @@ import com.app.model.Enums.VehicleType;
 
 
 public class Deliverer extends User {
-    private VehicleType vehicleType;   // e.g., bike, car, truck
-    private boolean available;    // if the deliverer is available for orders
-    private double maxWeight; // maximum weight the deliverer can carry
+    private VehicleType vehicleType;  
+    private boolean available;    
+    private double maxWeight;
     private String city;
     private double currentLoad;
     private String serialNumber;

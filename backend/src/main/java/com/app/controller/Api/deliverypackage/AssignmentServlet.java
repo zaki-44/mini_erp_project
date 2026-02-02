@@ -14,7 +14,6 @@ import com.app.dao.Implementation.DelivererDAO;
 import com.app.dao.Implementation.DeliveryPackageDAO;
 import com.app.model.Affectation;
 import com.app.model.Deliverer;
-import com.app.model.Client;
 import com.app.model.DeliveryPackage;
 import com.app.model.Enums.AffectationStatus;
 import com.app.model.Enums.PackageStatus;
