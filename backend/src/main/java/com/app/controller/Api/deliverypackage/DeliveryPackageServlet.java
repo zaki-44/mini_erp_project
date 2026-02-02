@@ -21,7 +21,6 @@ public class DeliveryPackageServlet extends HttpServlet {
     /**
      * GET /api/packages - Get all packages
      * GET /api/packages/{id} - Get package by ID
-     * GET /api/packages?idDeliverer={delivererId} - Get packages assigned to a deliverer 
      * GET /api/packages?idClient={clientId} - Get packages created by a client 
      */
     @Override
@@ -42,21 +41,9 @@ public class DeliveryPackageServlet extends HttpServlet {
 
             if (pathInfo == null || pathInfo.equals("/")) {
                 
-                String delivererIdParam = req.getParameter("idDeliverer");
                 String clientIdParam = req.getParameter("idClient");
 
-                if (delivererIdParam != null) {
-                    if(!role.equals("ADMIN")){
-                        resp.setStatus(HttpServletResponse.SC_FORBIDDEN);
-                        out.print("{\"error\": \"Admins only.\"}");
-                        return;
-                    }
-                    int delivererId = Integer.parseInt(delivererIdParam);
-                    List<DeliveryPackage> packages = packageDAO.findByDelivererId(delivererId);
-                    String json = gson.toJson(packages);
-                    resp.setStatus(HttpServletResponse.SC_OK);
-                    out.print(json);
-                } else if (clientIdParam != null) {
+                if (clientIdParam != null) {
                     if(!role.equals("ADMIN")){
                         resp.setStatus(HttpServletResponse.SC_FORBIDDEN);
                         out.print("{\"error\": \"Admins only.\"}");
@@ -90,7 +77,7 @@ public class DeliveryPackageServlet extends HttpServlet {
                 if (splits.length > 1) {
                     int id = Integer.parseInt(splits[1]);
                     DeliveryPackage pkg = packageDAO.findById(id);
-                    if(!role.equals("ADMIN") || !packageDAO.ownsPackage(userId , id)){
+                    if(!role.equals("ADMIN") && !packageDAO.ownsPackage(userId , id)){
                         resp.setStatus(HttpServletResponse.SC_FORBIDDEN);
                         out.print("{\"error\": \"You can only access your own packages.\"}");
                         return;

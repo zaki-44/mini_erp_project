@@ -144,26 +144,6 @@ public class DeliveryPackageDAO implements DAO<DeliveryPackage> {
 
         return list;
     }
-    public List<DeliveryPackage> findByDelivererId(int delivererId) throws SQLException {
-        String sql = "SELECT p.* FROM package p " +
-                     "JOIN delivery d ON p.id_package = d.id_package " +
-                     "WHERE d.id_deliverer = ?";
-        List<DeliveryPackage> list = new ArrayList<>();
-
-        try (Connection conn = Database.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-
-            stmt.setInt(1, delivererId);
-
-            try (ResultSet rs = stmt.executeQuery()) {
-                while (rs.next()) {
-                    list.add(mapRow(rs));
-                }
-            }
-        }
-
-        return list;
-    }
 
     private DeliveryPackage mapRow(ResultSet rs) throws SQLException {
         DeliveryPackage pkg = new DeliveryPackage();

@@ -1,17 +1,29 @@
 package com.app.service;
 
 import com.app.dao.Implementation.RateDAO;
+import com.app.dao.Implementation.DelivererDAO;
+import com.app.model.Deliverer;
 import com.app.model.Rate;
 import java.sql.Date;
 import java.util.List;
 
 
 public class RateService {
+    private DelivererDAO delivererDAO = new DelivererDAO();
     private RateDAO rateDAO = new RateDAO();
     public void rateDeliverer(int idDeliverer, int idClient, double rating, String comment) {
-        Date currentDate = new Date(System.currentTimeMillis());
-        Rate rate = new Rate(idDeliverer, idClient, rating, comment, currentDate);
-        rateDAO.insert(rate);
+        try{
+            Date currentDate = new Date(System.currentTimeMillis());
+            Rate rate = new Rate(idDeliverer, idClient, rating, comment, currentDate);
+            Deliverer deliverer = delivererDAO.findById(idDeliverer);
+            rateDAO.insert(rate);
+            double averageRating = calculateAverageRating(idDeliverer);
+            deliverer.setRate(averageRating);
+            delivererDAO.update(deliverer);
+        }
+        catch(Exception e){
+            System.out.println("Error rating deliverer: " + e.getMessage());
+        }
     }
     public void updateRate(int idDeliverer, int idClient, double rating, String comment) {
         Date currentDate = new Date(System.currentTimeMillis());

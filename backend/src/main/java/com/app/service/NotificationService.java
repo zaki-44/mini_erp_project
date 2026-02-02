@@ -44,4 +44,18 @@ public class NotificationService {
             System.out.println("Failed to send assignment notification: " + e.getMessage());
         }
     }
+    public void sendCompletionNotification(int clientId, int packageId) {
+        try {
+            String message = "Your package ID: " + packageId + " has been delivered.";
+            String subject = "Package Delivered";
+            String clientEmail = userDAO.findById(clientId).getEmail();
+
+            Notification notification = new Notification(packageId, clientId, message,
+                    NotificationType.DELIVERY_CONFIRM, new Timestamp(System.currentTimeMillis()));
+            notificationDAO.insert(notification);
+            EmailService.sendEmail(clientEmail, subject, message);
+        } catch (Exception e) {
+            System.out.println("Failed to send completion notification: " + e.getMessage());
+        }
+    }
 }

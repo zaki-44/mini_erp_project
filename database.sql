@@ -86,7 +86,6 @@ CREATE TABLE email_verification (
 
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
---@block
 CREATE TABLE rate(
     id_rate INT AUTO_INCREMENT PRIMARY KEY,
     id_deliverer INT NOT NULL,

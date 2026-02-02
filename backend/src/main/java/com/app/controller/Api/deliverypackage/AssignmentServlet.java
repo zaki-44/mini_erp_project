@@ -14,10 +14,12 @@ import com.app.dao.Implementation.DelivererDAO;
 import com.app.dao.Implementation.DeliveryPackageDAO;
 import com.app.model.Affectation;
 import com.app.model.Deliverer;
+import com.app.model.Client;
 import com.app.model.DeliveryPackage;
 import com.app.model.Enums.AffectationStatus;
 import com.app.model.Enums.PackageStatus;
 import com.app.service.DeliveryAssignmentService;
+import com.app.service.NotificationService;
 
 @WebServlet("/api/assignments/*")
 public class AssignmentServlet extends HttpServlet {
@@ -27,13 +29,14 @@ public class AssignmentServlet extends HttpServlet {
     private DeliveryPackageDAO packageDAO;
     private DelivererDAO delivererDAO;
     private Gson gson;
-
+    private NotificationService notificationService;
     @Override
     public void init() {
         assignmentService = new DeliveryAssignmentService();
         affectationDAO = new AffectationDAO();
         packageDAO = new DeliveryPackageDAO();
         delivererDAO = new DelivererDAO();
+        notificationService = new NotificationService();
         gson = new Gson();
     }
 
@@ -160,6 +163,8 @@ public class AssignmentServlet extends HttpServlet {
     private void handleComplete(int affectationId, int delivererId, PrintWriter out) throws SQLException {
         Affectation aff = affectationDAO.findById(affectationId);
 
+        
+         // Notify client about delivery completion
         if (aff == null || aff.getIdDeliverer() != delivererId) {
             out.print("{\"error\": \"Assignment not found or not yours\"}");
             return;
@@ -170,6 +175,17 @@ public class AssignmentServlet extends HttpServlet {
             affectationDAO.update(aff);
 
             DeliveryPackage pkg = packageDAO.findById(aff.getIdPackage());
+
+            int destinationClientId = pkg.getIdClientDestination();
+            int sourceClientId = pkg.getIdClientSource();
+            notificationService.sendCompletionNotification(
+                sourceClientId,
+                pkg.getIdPackage()
+            );
+            notificationService.sendCompletionNotification(
+                destinationClientId,
+                pkg.getIdPackage()
+            );
             pkg.setStatus(PackageStatus.DELIVERED);
             packageDAO.update(pkg);
 

@@ -180,7 +180,7 @@ public class DeliveryAssignmentService {
                     bestDeliverer.setAvailable(false);
                 }
                 Affectation aff = new Affectation(0, bestDeliverer.getId(), pkg.getIdPackage(), 
-                                                AffectationStatus.PENDING, new Timestamp(System.currentTimeMillis()));
+                                                AffectationStatus.ACCEPTED, new Timestamp(System.currentTimeMillis()));
                 
                 pkg.setStatus(PackageStatus.ASSIGNED);
                 affectationDAO.insert(aff);
