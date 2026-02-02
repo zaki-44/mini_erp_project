@@ -1,25 +1,20 @@
-export type OrderStatus = 'pending' | 'confirmed' | 'picked_up' | 'in_transit' | 'delivered' | 'cancelled' | 'rejected_by_receiver';
+export type OrderStatus = 'CREATED' | 'ASSIGNED' | 'IN_TRANSIT' | 'DELIVERED' | 'CANCELLED';
 
 export interface Order {
-  id: string;
-  emetteurId: string;
-  emetteurName: string;
-  recepteurId: string;
-  recepteurName: string;
-  recepteurAddress: string;
-  livreurId?: string;
-  livreurName?: string;
-  status: OrderStatus;
-  description: string;
+  idPackage: number;
+  idClientSource: number;
+  idClientDestination?: number;
+  vehicleTypeNeeded?: string;
+  addressSource: string;
+  addressDestination: string;
   weight: number;
-  pickupAddress: string;
-  deliveryAddress: string;
-  latitude: number;
-  longitude: number;
-  createdAt: Date;
-  updatedAt: Date;
+  price: number;
+  dimensions?: string;
+  description?: string;
+  deliveryInstructions?: string;
+  status: OrderStatus;
+  createdAt: string;
 }
-
 export interface User {
   id: string;
   name: string;
@@ -37,3 +32,39 @@ export interface DeliveryHistory {
   livreurId: string;
   completedAt: Date;
 }
+
+export interface Deliverer{
+  id:number,
+  email:string,
+  username:string,
+  firstName:string,
+  lastName:string,
+  phoneNumber:string,
+  role:"DELIVERER",
+  emailVerified:boolean,
+  vehicleType:string,
+  available:boolean,
+  maxWeight:number,
+  currentLoad:number,
+  city:string,
+  serialNumber:string,
+  rate:number
+}
+
+// export interface Client{
+//   id:number,
+//   email:string,
+//   username:string,
+//   firstName:string,
+//   lastName:string,
+//   phoneNumber:string,
+//   role:"DELIVERER",
+//   emailVerified:boolean,
+//   vehicleType:string,
+//   available:boolean,
+//   maxWeight:number,
+//   currentLoad:number,
+//   city:string,
+//   serialNumber:string,
+//   rate:number
+// }

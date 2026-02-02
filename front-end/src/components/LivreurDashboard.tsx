@@ -4,10 +4,9 @@ import { Button } from './ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Avatar, AvatarFallback } from './ui/avatar';
 import { StatusBadge } from './StatusBadge';
-import { MapPin, Package, LogOut, CheckCircle, Truck, User as UserIcon, Search, Loader2 } from 'lucide-react';
+import { MapPin, Package, LogOut, CheckCircle, Truck, User as UserIcon, Search } from 'lucide-react';
 import type { Order, DeliveryHistory } from '../types';
 import { fetchOrders, updateOrderStatus } from '../lib/api';
-import { mockOrders, mockDeliveryHistory } from '../lib/mockData';
 
 interface AuthUser {
   id: string;
@@ -24,9 +23,12 @@ interface LivreurDashboardProps {
 // Extended Order type with distance property
 interface OrderWithDistance extends Order {
   distance: number;
+  latitude?: number;
+  longitude?: number;
 }
 
 // Helper function to calculate distance between two coordinates (in km)
+// TODO: Implement when coordinates are available in Order interface
 function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371; // Radius of the Earth in km
   const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -56,45 +58,35 @@ export function LivreurDashboard({ user, onLogout }: LivreurDashboardProps) {
       setLoading(true);
       setError(null);
       try {
-        const [ordersData, historyData] = await Promise.all([
-          fetchOrders(),
-          fetchDeliveryHistory(),
-        ]);
+        const ordersData = await fetchOrders();
         setAllOrders(ordersData);
-        setHistory(historyData.filter(h => h.livreurId === user.id));
+        setHistory([]); // TODO: Implement fetchDeliveryHistory API
         
-        // Filter assigned deliveries
+        // Filter assigned deliveries - orders with status ASSIGNED or IN_TRANSIT
+        // Note: We'll need to check if order is assigned to this deliverer via API
         const assigned = ordersData.filter(
-          o => o.livreurId === user.id && !['delivered', 'cancelled', 'rejected_by_receiver'].includes(o.status)
+          o => ['ASSIGNED', 'IN_TRANSIT'].includes(o.status)
         );
         setAssignedDeliveries(assigned);
         
-        // Calculate available orders with distance
+        // Calculate available orders with distance - orders with status CREATED
+        // Note: Distance calculation requires coordinates which may not be in Order interface
         const available = ordersData
-          .filter(o => o.status === 'confirmed' && !o.livreurId)
+          .filter(o => o.status === 'CREATED')
           .map(o => ({
             ...o,
-            distance: calculateDistance(currentLocation.lat, currentLocation.lon, o.latitude, o.longitude)
+            distance: 0, // TODO: Calculate distance when coordinates are available
+            latitude: 0,
+            longitude: 0,
           }))
           .sort((a, b) => a.distance - b.distance);
         setAvailableOrders(available);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load data');
-        // Fallback to mock data
-        setAllOrders(mockOrders);
-        setHistory(mockDeliveryHistory.filter(h => h.livreurId === user.id));
-        const assigned = mockOrders.filter(
-          o => o.livreurId === user.id && !['delivered', 'cancelled', 'rejected_by_receiver'].includes(o.status)
-        );
-        setAssignedDeliveries(assigned);
-        const available = mockOrders
-          .filter(o => o.status === 'confirmed' && !o.livreurId)
-          .map(o => ({
-            ...o,
-            distance: calculateDistance(currentLocation.lat, currentLocation.lon, o.latitude, o.longitude)
-          }))
-          .sort((a, b) => a.distance - b.distance);
-        setAvailableOrders(available);
+        setAllOrders([]);
+        setHistory([]);
+        setAssignedDeliveries([]);
+        setAvailableOrders([]);
       } finally {
         setLoading(false);
       }
@@ -104,69 +96,40 @@ export function LivreurDashboard({ user, onLogout }: LivreurDashboardProps) {
   }, [user.id, currentLocation.lat, currentLocation.lon]);
 
   const handlePickupOrder = async (orderId: string) => {
-    const orderToPickup = availableOrders.find(o => o.id === orderId);
+    const orderToPickup = availableOrders.find(o => o.idPackage.toString() === orderId);
     if (!orderToPickup) return;
 
     try {
-      const updatedOrder = await updateOrderStatus(orderId, 'picked_up');
-      // Update order with livreur info
-      const orderWithLivreur = {
-        ...updatedOrder,
-        livreurId: user.id,
-        livreurName: user.name,
-      };
+      const updatedOrder = await updateOrderStatus(orderId, 'ASSIGNED');
       
-      setAssignedDeliveries([orderWithLivreur, ...assignedDeliveries]);
-      setAvailableOrders(availableOrders.filter(o => o.id !== orderId));
-      setAllOrders(allOrders.map(o => o.id === orderId ? orderWithLivreur : o));
-    } catch (err) {
-      // Fallback: update locally
-      const updatedOrder = {
-        ...orderToPickup,
-        livreurId: user.id,
-        livreurName: user.name,
-        status: 'picked_up' as const,
-        updatedAt: new Date()
-      };
       setAssignedDeliveries([updatedOrder, ...assignedDeliveries]);
-      setAvailableOrders(availableOrders.filter(o => o.id !== orderId));
+      setAvailableOrders(availableOrders.filter(o => o.idPackage.toString() !== orderId));
+      setAllOrders(allOrders.map(o => o.idPackage.toString() === orderId ? updatedOrder : o));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to pickup order');
     }
   };
 
   const handleStartDelivery = async (orderId: string) => {
     try {
-      await updateOrderStatus(orderId, 'in_transit');
-      const updated = assignedDeliveries.map(order => 
-        order.id === orderId && order.status === 'picked_up'
-          ? { ...order, status: 'in_transit' as const, updatedAt: new Date() }
-          : order
-      );
-      setAssignedDeliveries(updated);
+      const updatedOrder = await updateOrderStatus(orderId, 'IN_TRANSIT');
+      setAssignedDeliveries(assignedDeliveries.map(order => 
+        order.idPackage.toString() === orderId ? updatedOrder : order
+      ));
       setAllOrders(allOrders.map(o => 
-        o.id === orderId ? { ...o, status: 'in_transit' as const, updatedAt: new Date() } : o
+        o.idPackage.toString() === orderId ? updatedOrder : o
       ));
     } catch (err) {
-      // Fallback: update locally
-      setAssignedDeliveries(assignedDeliveries.map(order => 
-        order.id === orderId && order.status === 'picked_up'
-          ? { ...order, status: 'in_transit' as const, updatedAt: new Date() }
-          : order
-      ));
+      setError(err instanceof Error ? err.message : 'Failed to start delivery');
     }
   };
 
   const handleCompleteDelivery = async (orderId: string) => {
     try {
-      await updateOrderStatus(orderId, 'delivered');
+      const updatedOrder = await updateOrderStatus(orderId, 'DELIVERED');
       
-      // Create delivery history entry
-      await createDeliveryHistory({
-        orderId,
-        livreurId: user.id,
-        completedAt: new Date(),
-      });
-      
-      setAssignedDeliveries(assignedDeliveries.filter(o => o.id !== orderId));
+      // TODO: Create delivery history entry via API
+      setAssignedDeliveries(assignedDeliveries.filter(o => o.idPackage.toString() !== orderId));
       setHistory([...history, {
         id: String(Date.now()),
         orderId,
@@ -174,17 +137,10 @@ export function LivreurDashboard({ user, onLogout }: LivreurDashboardProps) {
         completedAt: new Date(),
       }]);
       setAllOrders(allOrders.map(o => 
-        o.id === orderId ? { ...o, status: 'delivered' as const, updatedAt: new Date() } : o
+        o.idPackage.toString() === orderId ? updatedOrder : o
       ));
     } catch (err) {
-      // Fallback: update locally
-      setAssignedDeliveries(assignedDeliveries.filter(o => o.id !== orderId));
-      setHistory([...history, {
-        id: String(Date.now()),
-        orderId,
-        livreurId: user.id,
-        completedAt: new Date(),
-      }]);
+      setError(err instanceof Error ? err.message : 'Failed to complete delivery');
     }
   };
 
@@ -224,7 +180,7 @@ export function LivreurDashboard({ user, onLogout }: LivreurDashboardProps) {
               My Deliveries
             </TabsTrigger>
             <TabsTrigger value="profile">
-              <User className="size-4 mr-2" />
+              <UserIcon className="size-4 mr-2" />
               Profile
             </TabsTrigger>
           </TabsList>
@@ -251,17 +207,19 @@ export function LivreurDashboard({ user, onLogout }: LivreurDashboardProps) {
                   ) : (
                     availableOrders.map(order => (
                       <div
-                        key={order.id}
+                        key={order.idPackage}
                         className="border border-neutral-200 rounded-lg p-4 hover:border-neutral-300 transition-colors"
                       >
                         <div className="flex items-start justify-between mb-4">
                           <div>
-                            <p className="text-neutral-900">Order #{order.id}</p>
-                            <p className="text-sm text-neutral-500">{order.description}</p>
+                            <p className="text-neutral-900">Order #{order.idPackage}</p>
+                            <p className="text-sm text-neutral-500">{order.description || 'No description'}</p>
                           </div>
-                          <div className="bg-green-100 text-green-900 px-3 py-1 rounded-full text-sm">
-                            {order.distance.toFixed(1)} km away
-                          </div>
+                          {order.distance > 0 && (
+                            <div className="bg-green-100 text-green-900 px-3 py-1 rounded-full text-sm">
+                              {order.distance.toFixed(1)} km away
+                            </div>
+                          )}
                         </div>
                         
                         <div className="space-y-3 mb-4">
@@ -272,8 +230,8 @@ export function LivreurDashboard({ user, onLogout }: LivreurDashboardProps) {
                               </div>
                               <div className="flex-1">
                                 <p className="text-sm text-neutral-500">Pickup from</p>
-                                <p className="text-neutral-900">{order.emetteurName}</p>
-                                <p className="text-sm text-neutral-600">{order.pickupAddress}</p>
+                                <p className="text-neutral-900">Client #{order.idClientSource}</p>
+                                <p className="text-sm text-neutral-600">{order.addressSource}</p>
                               </div>
                             </div>
                           </div>
@@ -285,8 +243,8 @@ export function LivreurDashboard({ user, onLogout }: LivreurDashboardProps) {
                               </div>
                               <div className="flex-1">
                                 <p className="text-sm text-neutral-500">Deliver to</p>
-                                <p className="text-neutral-900">{order.recepteurName}</p>
-                                <p className="text-sm text-neutral-600">{order.deliveryAddress}</p>
+                                <p className="text-neutral-900">Client #{order.idClientDestination || 'N/A'}</p>
+                                <p className="text-sm text-neutral-600">{order.addressDestination}</p>
                               </div>
                             </div>
                           </div>
@@ -297,14 +255,18 @@ export function LivreurDashboard({ user, onLogout }: LivreurDashboardProps) {
                               <p className="text-neutral-900">{order.weight} kg</p>
                             </div>
                             <div>
+                              <p className="text-neutral-500">Price</p>
+                              <p className="text-neutral-900">${order.price}</p>
+                            </div>
+                            <div>
                               <p className="text-neutral-500">Created</p>
-                              <p className="text-neutral-900">{order.createdAt.toLocaleDateString()}</p>
+                              <p className="text-neutral-900">{new Date(order.createdAt).toLocaleDateString()}</p>
                             </div>
                           </div>
                         </div>
 
                         <Button
-                          onClick={() => handlePickupOrder(order.id)}
+                          onClick={() => handlePickupOrder(order.idPackage.toString())}
                           className="w-full"
                         >
                           <CheckCircle className="size-4 mr-2" />
@@ -340,13 +302,13 @@ export function LivreurDashboard({ user, onLogout }: LivreurDashboardProps) {
                   ) : (
                     assignedDeliveries.map(order => (
                       <div
-                        key={order.id}
+                        key={order.idPackage}
                         className="border border-neutral-200 rounded-lg p-4 hover:border-neutral-300 transition-colors"
                       >
                         <div className="flex items-start justify-between mb-4">
                           <div>
-                            <p className="text-neutral-900">Order #{order.id}</p>
-                            <p className="text-sm text-neutral-500">{order.description}</p>
+                            <p className="text-neutral-900">Order #{order.idPackage}</p>
+                            <p className="text-sm text-neutral-500">{order.description || 'No description'}</p>
                           </div>
                           <StatusBadge status={order.status} />
                         </div>
@@ -359,8 +321,8 @@ export function LivreurDashboard({ user, onLogout }: LivreurDashboardProps) {
                               </div>
                               <div className="flex-1">
                                 <p className="text-sm text-neutral-500">Pickup from</p>
-                                <p className="text-neutral-900">{order.emetteurName}</p>
-                                <p className="text-sm text-neutral-600">{order.pickupAddress}</p>
+                                <p className="text-neutral-900">Client #{order.idClientSource}</p>
+                                <p className="text-sm text-neutral-600">{order.addressSource}</p>
                               </div>
                             </div>
                           </div>
@@ -372,8 +334,8 @@ export function LivreurDashboard({ user, onLogout }: LivreurDashboardProps) {
                               </div>
                               <div className="flex-1">
                                 <p className="text-sm text-neutral-500">Deliver to</p>
-                                <p className="text-neutral-900">{order.recepteurName}</p>
-                                <p className="text-sm text-neutral-600">{order.deliveryAddress}</p>
+                                <p className="text-neutral-900">Client #{order.idClientDestination || 'N/A'}</p>
+                                <p className="text-sm text-neutral-600">{order.addressDestination}</p>
                               </div>
                             </div>
                           </div>
@@ -384,25 +346,25 @@ export function LivreurDashboard({ user, onLogout }: LivreurDashboardProps) {
                               <p className="text-neutral-900">{order.weight} kg</p>
                             </div>
                             <div>
-                              <p className="text-neutral-500">Status</p>
-                              <p className="text-neutral-900 capitalize">{order.status.replace('_', ' ')}</p>
+                              <p className="text-neutral-500">Price</p>
+                              <p className="text-neutral-900">${order.price}</p>
                             </div>
                           </div>
                         </div>
 
                         <div className="flex gap-2">
-                          {order.status === 'picked_up' && (
+                          {order.status === 'ASSIGNED' && (
                             <Button
-                              onClick={() => handleStartDelivery(order.id)}
+                              onClick={() => handleStartDelivery(order.idPackage.toString())}
                               className="flex-1"
                             >
                               <Truck className="size-4 mr-2" />
                               Start Delivery
                             </Button>
                           )}
-                          {order.status === 'in_transit' && (
+                          {order.status === 'IN_TRANSIT' && (
                             <Button
-                              onClick={() => handleCompleteDelivery(order.id)}
+                              onClick={() => handleCompleteDelivery(order.idPackage.toString())}
                               className="flex-1"
                             >
                               <CheckCircle className="size-4 mr-2" />
@@ -468,7 +430,7 @@ export function LivreurDashboard({ user, onLogout }: LivreurDashboardProps) {
                     </div>
                   ) : (
                     history.map(item => {
-                      const order = allOrders.find(o => o.id === item.orderId);
+                      const order = allOrders.find(o => o.idPackage.toString() === item.orderId);
                       return (
                         <div
                           key={item.id}
@@ -478,7 +440,7 @@ export function LivreurDashboard({ user, onLogout }: LivreurDashboardProps) {
                             <div>
                               <p className="text-neutral-900">Order #{item.orderId}</p>
                               {order && (
-                                <p className="text-sm text-neutral-500">{order.description}</p>
+                                <p className="text-sm text-neutral-500">{order.description || 'No description'}</p>
                               )}
                             </div>
                             <div className="bg-green-100 text-green-900 px-3 py-1 rounded-full text-sm">
@@ -489,11 +451,13 @@ export function LivreurDashboard({ user, onLogout }: LivreurDashboardProps) {
                             <div className="grid grid-cols-2 gap-3 text-sm pt-2 border-t border-neutral-200">
                               <div>
                                 <p className="text-neutral-500">From</p>
-                                <p className="text-neutral-900">{order.emetteurName}</p>
+                                <p className="text-neutral-900">Client #{order.idClientSource}</p>
+                                <p className="text-xs text-neutral-600">{order.addressSource}</p>
                               </div>
                               <div>
                                 <p className="text-neutral-500">To</p>
-                                <p className="text-neutral-900">{order.recepteurName}</p>
+                                <p className="text-neutral-900">Client #{order.idClientDestination || 'N/A'}</p>
+                                <p className="text-xs text-neutral-600">{order.addressDestination}</p>
                               </div>
                             </div>
                           )}

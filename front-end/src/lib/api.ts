@@ -1,4 +1,4 @@
-import type { Order, User } from '../types'; // Keep your types if they match, or update them
+import type { Order, User, Deliverer } from '../types'; // Keep your types if they match, or update them
 import type { RegisterData } from '../components/RegisterPage';
 
 // 1. Point to the correct backend URL
@@ -66,9 +66,21 @@ export async function verifyCode(email: string, code: string) {
     });
 }
 
-export async function logout(): Promise<void> {
+export async function resendCode(email: string) {
+    return apiFetch('/resend-code', {
+        method: 'POST',
+        body: JSON.stringify({ email })
+    });
+}
+
+export interface LogoutResponse {
+  status: 'success' | 'error';
+  message: string;
+}
+
+export async function logout(): Promise<LogoutResponse> {
   // Must tell server to clear cookie
-  return apiFetch<void>('/logout', { method: 'POST' }); 
+  return apiFetch<LogoutResponse>('/logout', { method: 'POST' }); 
 }
 
 // --- PACKAGES (Formerly Orders) ---
@@ -110,8 +122,8 @@ export async function deleteOrder(orderId: string): Promise<void> {
 
 // --- ADMIN / USERS ---
 
-export async function fetchPendingDeliverers() {
-    return apiFetch('/api/admin/pending-deliverers');
+export async function fetchPendingDeliverers(): Promise<Deliverer[]> {
+    return apiFetch<Deliverer[]>('/api/admin/pending-deliverers');
 }
 
 export async function approveDeliverer(delivererId: string) {

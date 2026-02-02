@@ -28,15 +28,23 @@ export default function App() {
     setView('dashboard');
   };
 
-  const handleLogout = () => {
-    apiLogout();
-    setUser(null);
-    setView('login');
+  const handleLogout = async () => {
+    try {
+      await apiLogout();
+      setUser(null);
+      setView('login');
+    } catch (error) {
+      // Even if logout fails on server, clear local state
+      setUser(null);
+      setView('login');
+      console.error('Logout error:', error);
+    }
   };
 
   const handleRegister = async (registerData: RegisterData) => {
-    await register(registerData);
+    const response = await register(registerData);
     // Registration successful, will redirect to verification via RegisterPage
+    return response;
   };
 
   const handleShowRegister = () => {

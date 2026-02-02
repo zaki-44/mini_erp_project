@@ -6,10 +6,9 @@ import { Textarea } from './ui/textarea';
 import { Label } from './ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { StatusBadge } from './StatusBadge';
-import { Plus, MapPin, Package, LogOut, Send, Inbox, CheckCircle, X, Search, Loader2 } from 'lucide-react';
+import { Plus, MapPin, Package, LogOut, Send, Inbox, CheckCircle, X, Search } from 'lucide-react';
 import type { Order, User } from '../types';
 import { fetchOrders, createOrder, updateOrderStatus } from '../lib/api';
-import { mockOrders, mockUsers } from '../lib/mockData';
 
 interface AuthUser {
   id: string;
@@ -51,33 +50,21 @@ export function ClientDashboard({ user, onLogout }: ClientDashboardProps) {
       setLoading(true);
       setError(null);
       try {
-        const [ordersData, usersData] = await Promise.all([
-          fetchOrders(),
-          fetchUsers(),
-        ]);
+        const ordersData = await fetchOrders();
         setAllOrders(ordersData);
-        setAllUsers(usersData);
+        setAllUsers([]); // TODO: Implement fetchUsers API if needed
         
-        // Filter orders for this user
-        setSentOrders(ordersData.filter(o => o.emetteurId === user.id));
-        setReceivedOrders(ordersData.filter(o => o.recepteurId === user.id));
-        
-        // Set default pickup address
-        const currentUser = usersData.find(u => u.id === user.id);
-        if (currentUser?.address) {
-          setNewOrder(prev => ({ ...prev, pickupAddress: currentUser.address || '' }));
-        }
+        // Filter orders for this user - using idClientSource for sent, idClientDestination for received
+        // Note: user.id is string, but idClientSource is number, so we need to convert
+        const userIdNum = parseInt(user.id);
+        setSentOrders(ordersData.filter(o => o.idClientSource === userIdNum));
+        setReceivedOrders(ordersData.filter(o => o.idClientDestination === userIdNum));
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load data');
-        // Fallback to mock data
-        setAllOrders(mockOrders);
-        setAllUsers(mockUsers);
-        setSentOrders(mockOrders.filter(o => o.emetteurId === user.id));
-        setReceivedOrders(mockOrders.filter(o => o.recepteurId === user.id));
-        const currentUser = mockUsers.find(u => u.id === user.id);
-        if (currentUser?.address) {
-          setNewOrder(prev => ({ ...prev, pickupAddress: currentUser.address || '' }));
-        }
+        setAllOrders([]);
+        setAllUsers([]);
+        setSentOrders([]);
+        setReceivedOrders([]);
       } finally {
         setLoading(false);
       }
@@ -93,6 +80,8 @@ export function ClientDashboard({ user, onLogout }: ClientDashboardProps) {
       return;
     }
     
+    // TODO: Implement user search API
+    // For now, search in local users array
     const results = allUsers.filter(u => 
       u.role === 'client' && 
       u.id !== user.id &&
@@ -112,45 +101,21 @@ export function ClientDashboard({ user, onLogout }: ClientDashboardProps) {
     if (!selectedReceiver) return;
 
     try {
-      const orderData: Partial<Order> = {
-        emetteurId: user.id,
-        emetteurName: user.name,
-        recepteurId: selectedReceiver.id,
-        recepteurName: selectedReceiver.name,
-        recepteurAddress: selectedReceiver.address || '',
-        status: 'confirmed',
-        description: newOrder.description,
+      const orderData = {
+        idClientSource: parseInt(user.id),
+        idClientDestination: parseInt(selectedReceiver.id),
+        addressSource: newOrder.pickupAddress,
+        addressDestination: selectedReceiver.address || '',
         weight: parseFloat(newOrder.weight),
-        pickupAddress: newOrder.pickupAddress,
-        deliveryAddress: selectedReceiver.address || '',
-        latitude: selectedReceiver.latitude || 48.8566,
-        longitude: selectedReceiver.longitude || 2.3522,
+        price: 0, // TODO: Calculate price based on weight/distance
+        description: newOrder.description,
       };
 
       const createdOrder = await createOrder(orderData);
       setSentOrders([createdOrder, ...sentOrders]);
       setAllOrders([createdOrder, ...allOrders]);
     } catch (err) {
-      // Fallback: create locally if API fails
-      const order: Order = {
-        id: String(Date.now()),
-        emetteurId: user.id,
-        emetteurName: user.name,
-        recepteurId: selectedReceiver.id,
-        recepteurName: selectedReceiver.name,
-        recepteurAddress: selectedReceiver.address || '',
-        status: 'confirmed',
-        description: newOrder.description,
-        weight: parseFloat(newOrder.weight),
-        pickupAddress: newOrder.pickupAddress,
-        deliveryAddress: selectedReceiver.address || '',
-        latitude: selectedReceiver.latitude || 48.8566,
-        longitude: selectedReceiver.longitude || 2.3522,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-      setSentOrders([order, ...sentOrders]);
-      setAllOrders([order, ...allOrders]);
+      setError(err instanceof Error ? err.message : 'Failed to create order');
     }
 
     setShowNewOrderForm(false);
@@ -159,64 +124,38 @@ export function ClientDashboard({ user, onLogout }: ClientDashboardProps) {
     setNewOrder({
       description: '',
       weight: '',
-      pickupAddress: allUsers.find(u => u.id === user.id)?.address || '',
+      pickupAddress: '',
     });
   };
 
   const handleCancelOrder = async (orderId: string) => {
     try {
-      await updateOrderStatus(orderId, 'cancelled');
-      const updatedOrder = allOrders.find(o => o.id === orderId);
-      if (updatedOrder) {
-        const cancelled = { ...updatedOrder, status: 'cancelled' as const, updatedAt: new Date() };
-        setSentOrders(sentOrders.map(o => o.id === orderId ? cancelled : o));
-        setAllOrders(allOrders.map(o => o.id === orderId ? cancelled : o));
-      }
+      const updatedOrder = await updateOrderStatus(orderId, 'CANCELLED');
+      setSentOrders(sentOrders.map(o => o.idPackage.toString() === orderId ? updatedOrder : o));
+      setAllOrders(allOrders.map(o => o.idPackage.toString() === orderId ? updatedOrder : o));
     } catch (err) {
-      // Fallback: update locally
-      setSentOrders(sentOrders.map(order => 
-        order.id === orderId && ['confirmed'].includes(order.status)
-          ? { ...order, status: 'cancelled' as const, updatedAt: new Date() }
-          : order
-      ));
+      setError(err instanceof Error ? err.message : 'Failed to cancel order');
     }
   };
 
   const handleAcceptDelivery = async (orderId: string) => {
     try {
-      await updateOrderStatus(orderId, 'delivered');
-      const updatedOrder = allOrders.find(o => o.id === orderId);
-      if (updatedOrder) {
-        const delivered = { ...updatedOrder, status: 'delivered' as const, updatedAt: new Date() };
-        setReceivedOrders(receivedOrders.map(o => o.id === orderId ? delivered : o));
-        setAllOrders(allOrders.map(o => o.id === orderId ? delivered : o));
-      }
+      const updatedOrder = await updateOrderStatus(orderId, 'DELIVERED');
+      setReceivedOrders(receivedOrders.map(o => o.idPackage.toString() === orderId ? updatedOrder : o));
+      setAllOrders(allOrders.map(o => o.idPackage.toString() === orderId ? updatedOrder : o));
     } catch (err) {
-      // Fallback: update locally
-      setReceivedOrders(receivedOrders.map(order => 
-        order.id === orderId && order.status === 'in_transit'
-          ? { ...order, status: 'delivered' as const, updatedAt: new Date() }
-          : order
-      ));
+      setError(err instanceof Error ? err.message : 'Failed to accept delivery');
     }
   };
 
   const handleRejectDelivery = async (orderId: string) => {
     try {
-      await updateOrderStatus(orderId, 'rejected_by_receiver');
-      const updatedOrder = allOrders.find(o => o.id === orderId);
-      if (updatedOrder) {
-        const rejected = { ...updatedOrder, status: 'rejected_by_receiver' as const, updatedAt: new Date() };
-        setReceivedOrders(receivedOrders.map(o => o.id === orderId ? rejected : o));
-        setAllOrders(allOrders.map(o => o.id === orderId ? rejected : o));
-      }
+      // Note: CANCELLED is used for rejected deliveries in the new status system
+      const updatedOrder = await updateOrderStatus(orderId, 'CANCELLED');
+      setReceivedOrders(receivedOrders.map(o => o.idPackage.toString() === orderId ? updatedOrder : o));
+      setAllOrders(allOrders.map(o => o.idPackage.toString() === orderId ? updatedOrder : o));
     } catch (err) {
-      // Fallback: update locally
-      setReceivedOrders(receivedOrders.map(order => 
-        order.id === orderId && order.status === 'in_transit'
-          ? { ...order, status: 'rejected_by_receiver' as const, updatedAt: new Date() }
-          : order
-      ));
+      setError(err instanceof Error ? err.message : 'Failed to reject delivery');
     }
   };
 
@@ -395,13 +334,13 @@ export function ClientDashboard({ user, onLogout }: ClientDashboardProps) {
                   ) : (
                     sentOrders.map(order => (
                       <div
-                        key={order.id}
+                        key={order.idPackage}
                         className="border border-neutral-200 rounded-lg p-4 hover:border-neutral-300 transition-colors"
                       >
                         <div className="flex items-start justify-between mb-3">
                           <div>
-                            <p className="text-neutral-900">Order #{order.id}</p>
-                            <p className="text-sm text-neutral-500">{order.description}</p>
+                            <p className="text-neutral-900">Order #{order.idPackage}</p>
+                            <p className="text-sm text-neutral-500">{order.description || 'No description'}</p>
                           </div>
                           <StatusBadge status={order.status} />
                         </div>
@@ -410,31 +349,29 @@ export function ClientDashboard({ user, onLogout }: ClientDashboardProps) {
                           <div className="flex items-start gap-2">
                             <MapPin className="size-4 mt-0.5 text-neutral-400 flex-shrink-0" />
                             <div>
-                              <p className="text-neutral-500">To: {order.recepteurName}</p>
-                              <p className="text-neutral-900">{order.deliveryAddress}</p>
+                              <p className="text-neutral-500">To: Client #{order.idClientDestination || 'N/A'}</p>
+                              <p className="text-neutral-900">{order.addressDestination}</p>
                             </div>
                           </div>
-                          {order.livreurName && (
-                            <div>
-                              <p className="text-neutral-500">Delivery Person</p>
-                              <p className="text-neutral-900">{order.livreurName}</p>
-                            </div>
-                          )}
+                          <div>
+                            <p className="text-neutral-500">Weight / Price</p>
+                            <p className="text-neutral-900">{order.weight} kg / ${order.price}</p>
+                          </div>
                           <div>
                             <p className="text-neutral-500">Created</p>
-                            <p className="text-neutral-900">{order.createdAt.toLocaleString()}</p>
+                            <p className="text-neutral-900">{new Date(order.createdAt).toLocaleString()}</p>
                           </div>
                         </div>
 
-                        {order.status === 'confirmed' && (
+                        {order.status === 'CREATED' && (
                           <div className="space-y-3">
                             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm">
-                              <p className="text-blue-900">Order confirmed - Waiting for delivery assignment</p>
+                              <p className="text-blue-900">Order created - Waiting for delivery assignment</p>
                             </div>
                             <Button
                               variant="destructive"
                               size="sm"
-                              onClick={() => handleCancelOrder(order.id)}
+                              onClick={() => handleCancelOrder(order.idPackage.toString())}
                             >
                               <X className="size-4 mr-2" />
                               Cancel Order
@@ -442,7 +379,7 @@ export function ClientDashboard({ user, onLogout }: ClientDashboardProps) {
                           </div>
                         )}
 
-                        {['picked_up', 'in_transit'].includes(order.status) && (
+                        {['ASSIGNED', 'IN_TRANSIT'].includes(order.status) && (
                           <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm">
                             <p className="text-amber-900">Delivery in progress - Cannot cancel</p>
                           </div>
@@ -469,23 +406,23 @@ export function ClientDashboard({ user, onLogout }: ClientDashboardProps) {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {receivedOrders.filter(o => !['delivered', 'cancelled', 'rejected_by_receiver'].includes(o.status)).length === 0 ? (
+                  {receivedOrders.filter(o => !['DELIVERED', 'CANCELLED'].includes(o.status)).length === 0 ? (
                     <div className="text-center py-8 text-neutral-500">
                       <Package className="size-12 mx-auto mb-3 opacity-30" />
                       <p>No incoming packages</p>
                     </div>
                   ) : (
                     receivedOrders
-                      .filter(o => !['delivered', 'cancelled', 'rejected_by_receiver'].includes(o.status))
+                      .filter(o => !['DELIVERED', 'CANCELLED'].includes(o.status))
                       .map(order => (
                         <div
-                          key={order.id}
+                          key={order.idPackage}
                           className="border border-neutral-200 rounded-lg p-4 hover:border-neutral-300 transition-colors"
                         >
                           <div className="flex items-start justify-between mb-3">
                             <div>
-                              <p className="text-neutral-900">Order #{order.id}</p>
-                              <p className="text-sm text-neutral-500">{order.description}</p>
+                              <p className="text-neutral-900">Order #{order.idPackage}</p>
+                              <p className="text-sm text-neutral-500">{order.description || 'No description'}</p>
                             </div>
                             <StatusBadge status={order.status} />
                           </div>
@@ -493,33 +430,27 @@ export function ClientDashboard({ user, onLogout }: ClientDashboardProps) {
                           <div className="space-y-2 text-sm mb-3">
                             <div>
                               <p className="text-neutral-500">From</p>
-                              <p className="text-neutral-900">{order.emetteurName}</p>
-                              <p className="text-neutral-600">{order.pickupAddress}</p>
+                              <p className="text-neutral-900">Client #{order.idClientSource}</p>
+                              <p className="text-neutral-600">{order.addressSource}</p>
                             </div>
                             <div className="flex items-start gap-2">
                               <MapPin className="size-4 mt-0.5 text-neutral-400 flex-shrink-0" />
                               <div>
                                 <p className="text-neutral-500">Delivery to</p>
-                                <p className="text-neutral-900">{order.deliveryAddress}</p>
+                                <p className="text-neutral-900">{order.addressDestination}</p>
                               </div>
                             </div>
-                            {order.livreurName && (
-                              <div>
-                                <p className="text-neutral-500">Delivery Person</p>
-                                <p className="text-neutral-900">{order.livreurName}</p>
-                              </div>
-                            )}
                             <div>
-                              <p className="text-neutral-500">Weight</p>
-                              <p className="text-neutral-900">{order.weight} kg</p>
+                              <p className="text-neutral-500">Weight / Price</p>
+                              <p className="text-neutral-900">{order.weight} kg / ${order.price}</p>
                             </div>
                           </div>
 
-                          {order.status === 'in_transit' && (
+                          {order.status === 'IN_TRANSIT' && (
                             <div className="flex gap-2">
                               <Button
                                 size="sm"
-                                onClick={() => handleAcceptDelivery(order.id)}
+                                onClick={() => handleAcceptDelivery(order.idPackage.toString())}
                                 className="flex-1"
                               >
                                 <CheckCircle className="size-4 mr-2" />
@@ -528,7 +459,7 @@ export function ClientDashboard({ user, onLogout }: ClientDashboardProps) {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => handleRejectDelivery(order.id)}
+                                onClick={() => handleRejectDelivery(order.idPackage.toString())}
                               >
                                 <X className="size-4 mr-2" />
                                 Reject
@@ -536,7 +467,7 @@ export function ClientDashboard({ user, onLogout }: ClientDashboardProps) {
                             </div>
                           )}
 
-                          {['confirmed', 'picked_up'].includes(order.status) && (
+                          {['CREATED', 'ASSIGNED'].includes(order.status) && (
                             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm">
                               <p className="text-blue-900">Package is on its way</p>
                             </div>
@@ -555,22 +486,22 @@ export function ClientDashboard({ user, onLogout }: ClientDashboardProps) {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {receivedOrders.filter(o => ['delivered', 'cancelled', 'rejected_by_receiver'].includes(o.status)).length === 0 ? (
+                  {receivedOrders.filter(o => ['DELIVERED', 'CANCELLED'].includes(o.status)).length === 0 ? (
                     <div className="text-center py-8 text-neutral-500">
                       <p>No delivery history</p>
                     </div>
                   ) : (
                     receivedOrders
-                      .filter(o => ['delivered', 'cancelled', 'rejected_by_receiver'].includes(o.status))
+                      .filter(o => ['DELIVERED', 'CANCELLED'].includes(o.status))
                       .map(order => (
                         <div
-                          key={order.id}
+                          key={order.idPackage}
                           className="border border-neutral-200 rounded-lg p-4"
                         >
                           <div className="flex items-start justify-between mb-3">
                             <div>
-                              <p className="text-neutral-900">Order #{order.id}</p>
-                              <p className="text-sm text-neutral-500">{order.description}</p>
+                              <p className="text-neutral-900">Order #{order.idPackage}</p>
+                              <p className="text-sm text-neutral-500">{order.description || 'No description'}</p>
                             </div>
                             <StatusBadge status={order.status} />
                           </div>
@@ -578,11 +509,11 @@ export function ClientDashboard({ user, onLogout }: ClientDashboardProps) {
                           <div className="grid grid-cols-2 gap-3 text-sm">
                             <div>
                               <p className="text-neutral-500">From</p>
-                              <p className="text-neutral-900">{order.emetteurName}</p>
+                              <p className="text-neutral-900">Client #{order.idClientSource}</p>
                             </div>
                             <div>
                               <p className="text-neutral-500">Completed</p>
-                              <p className="text-neutral-900">{order.updatedAt.toLocaleDateString()}</p>
+                              <p className="text-neutral-900">{new Date(order.createdAt).toLocaleDateString()}</p>
                             </div>
                           </div>
                         </div>

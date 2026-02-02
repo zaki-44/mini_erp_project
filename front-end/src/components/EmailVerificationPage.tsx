@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { AlertDescription } from "./ui/alert"
-import { verifyCode } from "@/lib/api"
+import { verifyCode, resendCode } from "@/lib/api"
 
 interface EmailVerificationPageProps {
   email: string;
@@ -31,6 +31,8 @@ export function EmailVerificationPage({
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [isResending, setIsResending] = useState(false);
+  const [resendSuccess, setResendSuccess] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,9 +61,20 @@ export function EmailVerificationPage({
 
   const handleResendCode = async () => {
     setError('');
-    // You might want to add a resend code API call here
-    // For now, just show a message
-    alert('Verification code has been resent to your email.');
+    setResendSuccess(false);
+    setIsResending(true);
+    try {
+      await resendCode(email);
+      setResendSuccess(true);
+      // Clear success message after 3 seconds
+      setTimeout(() => {
+        setResendSuccess(false);
+      }, 3000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to resend code. Please try again.');
+    } finally {
+      setIsResending(false);
+    }
   };
 
   return (
@@ -93,11 +106,12 @@ export function EmailVerificationPage({
                 </p>
                 <p className="text-sm font-medium text-foreground">{email}</p>
                 <p className="text-muted-foreground text-sm mt-2">
-                  Please enter the code below to verify your email address.
+                  the code will expire after 15 mins
                 </p>
+                
               </div>
 
-              <form onSubmit={handleSubmit}>
+              <form onSubmit={handleSubmit} className='flex flex-col gap-3'>
                 <Field>
                   <FieldLabel htmlFor="code">Verification Code *</FieldLabel>
                   <Input
@@ -133,11 +147,19 @@ export function EmailVerificationPage({
                   </div>
                 )}
 
+                {resendSuccess && (
+                  <div className="bg-green-50 text-green-900 p-3 rounded-lg border border-green-200">
+                    <AlertDescription>
+                      Verification code has been resent to your email.
+                    </AlertDescription>
+                  </div>
+                )}
+
                 <Field>
                   <Button 
                     type="submit" 
                     className="w-full" 
-                    disabled={isLoading || success || code.length < 4}
+                    disabled={isLoading || success || code.length < 6}
                   >
                     {isLoading ? 'Verifying...' : success ? 'Verified!' : 'Verify Email'}
                   </Button>
@@ -151,9 +173,9 @@ export function EmailVerificationPage({
                       onClick={handleResendCode}
                       className="p-0 h-auto underline-offset-2"
                       type="button"
-                      disabled={isLoading}
+                      disabled={isLoading || isResending}
                     >
-                      Resend code
+                      {isResending ? 'Sending...' : 'Resend code'}
                     </Button>
                   </FieldDescription>
                 </Field>

@@ -30,7 +30,7 @@ export interface RegisterData {
 }
 
 interface RegisterPageProps {
-  onRegister: (userData: RegisterData) => void;
+  onRegister: (userData: RegisterData) => any;
   onBackToLogin: () => void;
   onVerification: (email: string) => void;
   className?: string;
@@ -93,12 +93,20 @@ export function RegisterPage({ onRegister, onBackToLogin, onVerification, classN
 
     // Call API to register
     try {
-      await onRegister(formData);
-      setSuccess(true);
+      let res = await onRegister(formData);
+      
+      if(!(res.status === 'fail')){
+        setSuccess(true);
       // Show success message for 1.5 seconds then redirect to verification page
-      setTimeout(() => {
-        onVerification(formData.email);
-      }, 1500);
+        setTimeout(() => {
+          onVerification(formData.email);
+        }, 1500);
+      }
+      else{
+        setError(res.message)
+      }
+      
+      
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Registration failed. Please try again.');
     }

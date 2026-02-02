@@ -6,14 +6,12 @@ interface StatusBadgeProps {
 }
 
 export function StatusBadge({ status }: StatusBadgeProps) {
-  const statusConfig = {
-    pending: { label: 'Pending', variant: 'secondary' as const },
-    confirmed: { label: 'Confirmed', variant: 'default' as const },
-    picked_up: { label: 'Picked Up', variant: 'default' as const },
-    in_transit: { label: 'In Transit', variant: 'default' as const },
-    delivered: { label: 'Delivered', variant: 'default' as const },
-    cancelled: { label: 'Cancelled', variant: 'destructive' as const },
-    rejected_by_receiver: { label: 'Rejected', variant: 'destructive' as const },
+  const statusConfig: Record<OrderStatus, { label: string; variant: 'default' | 'secondary' | 'destructive' }> = {
+    CREATED: { label: 'Created', variant: 'secondary' },
+    ASSIGNED: { label: 'Assigned', variant: 'default' },
+    IN_TRANSIT: { label: 'In Transit', variant: 'default' },
+    DELIVERED: { label: 'Delivered', variant: 'default' },
+    CANCELLED: { label: 'Cancelled', variant: 'destructive' },
   };
 
   const config = statusConfig[status];
