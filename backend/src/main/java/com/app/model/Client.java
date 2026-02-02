@@ -9,8 +9,8 @@ public class Client extends User {
     private String city;
     private int postalCode;
 
-    private List<Package> sentPackages;
-    private List<Package> receivedPackages;
+    private List<DeliveryPackage> sentPackages;
+    private List<DeliveryPackage> receivedPackages;
 
     public Client() {}
 
@@ -67,19 +67,19 @@ public class Client extends User {
 
     
  
-    public List<Package> getSentPackages() {
+    public List<DeliveryPackage> getSentPackages() {
         return sentPackages;
     }
 
-    public void setSentPackages(List<Package> sentPackages) {
+    public void setSentPackages(List<DeliveryPackage> sentPackages) {
         this.sentPackages = sentPackages;
     }
 
-    public List<Package> getReceivedPackages() {
+    public List<DeliveryPackage> getReceivedPackages() {
         return receivedPackages;
     }
 
-    public void setReceivedPackages(List<Package> receivedPackages) {
+    public void setReceivedPackages(List<DeliveryPackage> receivedPackages) {
         this.receivedPackages = receivedPackages;
     }
 
@@ -90,7 +90,8 @@ public class Client extends User {
             "Client [address=" + address +
             ", city=" + city +
             ", postalCode=" + postalCode +
-            
+            ", sentPackages=" + sentPackages +
+            ", receivedPackages=" + receivedPackages +
             "]"
         );
     }

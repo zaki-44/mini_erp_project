@@ -140,4 +140,27 @@ public class NotificationDAO implements DAO<Notification> {
 
         return n;
     }
+
+    public List<Notification> findByUserId(int userId) throws SQLException {
+        String sql = "SELECT * FROM notification WHERE id_user_target=?";
+        List<Notification> list = new ArrayList<>();
+
+        try (Connection conn = Database.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, userId);
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapNotification(rs));
+                }
+            }
+        }
+        catch(SQLException e) {
+            System.out.println("Error retrieving notifications for user: " + e.getMessage());
+            throw e;
+        }
+
+        return list;
+    }
 }

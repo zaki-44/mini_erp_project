@@ -6,6 +6,7 @@ import java.util.List;
 
 import com.app.dao.Interface.DAO;
 import com.app.model.Client;
+import com.app.model.Enums.Role;
 import com.app.util.Database;
 
 //Tested
@@ -240,6 +241,37 @@ public class ClientDAO implements DAO<Client> {
         client.setCity(rs.getString("city"));
         client.setPostalCode(rs.getInt("postal_code"));
         client.setEmailVerified(rs.getBoolean("email_verified"));
+        String roleStr = rs.getString("role");
+        if (roleStr != null) {
+            client.setRole(Role.valueOf(roleStr));
+        }
         return client;
+    }
+    public List<Client> searchByName(String nameQuery) throws SQLException {
+        String sql = "SELECT u.*, c.* "
+                   + "FROM users u JOIN client c ON u.id = c.id "
+                   + "WHERE u.first_name LIKE ? OR u.last_name LIKE ?";
+
+        List<Client> clients = new ArrayList<>();
+        String likeQuery = "%" + nameQuery + "%";
+
+        try (Connection conn = Database.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setString(1, likeQuery);
+            stmt.setString(2, likeQuery);
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    Client client = mapResultSetToClient(rs);
+                    clients.add(client);
+                }
+            }
+        } catch (SQLException e) {
+            System.out.println("Error searching clients by name: " + e.getMessage());
+            throw e;
+        }
+
+        return clients;
     }
 }

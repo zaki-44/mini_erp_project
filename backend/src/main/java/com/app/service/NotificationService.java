@@ -6,6 +6,7 @@ import com.app.model.Notification;
 import com.app.model.Enums.NotificationType;
 import com.app.util.EmailService;
 import java.sql.Timestamp;
+import java.util.List;
 public class NotificationService {
     private NotificationDAO notificationDAO = new NotificationDAO();
     private UserDAO userDAO = new UserDAO();
@@ -56,6 +57,27 @@ public class NotificationService {
             EmailService.sendEmail(clientEmail, subject, message);
         } catch (Exception e) {
             System.out.println("Failed to send completion notification: " + e.getMessage());
+        }
+    }
+    public List<Notification> getNotificationsForUser(int userId) throws Exception {
+        return notificationDAO.findByUserId(userId);
+    }
+    public void markAsRead(int notificationId, int userId) throws Exception {
+        Notification notification = notificationDAO.findById(notificationId);
+        if (notification != null && notification.getIdUserTarget() == userId) {
+            notification.setRead(true);
+            notificationDAO.update(notification);
+        } else {
+            throw new Exception("Notification not found or unauthorized");
+        }
+    }
+    public void markAllAsReadForUser(int userId) throws Exception {
+        List<Notification> notifications = notificationDAO.findByUserId(userId);
+        for (Notification notification : notifications) {
+            if (!notification.isRead()) {
+                notification.setRead(true);
+                notificationDAO.update(notification);
+            }
         }
     }
 }
