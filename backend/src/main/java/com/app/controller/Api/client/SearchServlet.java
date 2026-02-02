@@ -35,7 +35,6 @@ public class SearchServlet extends HttpServlet {
         }
         try {
             String query = req.getParameter("q");
-            System.out.println("Search query: " + query);
             List<Client> results = searchService.searchUsersByName(query);
             out.print(gson.toJson(results));
         } catch (Exception e) {
