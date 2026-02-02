@@ -30,38 +30,71 @@ public class DeliveryPackageServlet extends HttpServlet {
         resp.setContentType("application/json");
         resp.setCharacterEncoding("UTF-8");
         PrintWriter out = resp.getWriter();
-
+        Integer userId = (Integer) req.getAttribute("userId");
+        String role = (String) req.getAttribute("userRole");
+        if (userId == null || role == null) {
+            resp.setStatus(HttpServletResponse.SC_FORBIDDEN);
+            out.print("{\"error\": \"Access denied.\"}");
+            return;
+        }
         try {
             String pathInfo = req.getPathInfo();
 
             if (pathInfo == null || pathInfo.equals("/")) {
+                
                 String delivererIdParam = req.getParameter("idDeliverer");
                 String clientIdParam = req.getParameter("idClient");
 
                 if (delivererIdParam != null) {
+                    if(!role.equals("ADMIN")){
+                        resp.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                        out.print("{\"error\": \"Admins only.\"}");
+                        return;
+                    }
                     int delivererId = Integer.parseInt(delivererIdParam);
                     List<DeliveryPackage> packages = packageDAO.findByDelivererId(delivererId);
                     String json = gson.toJson(packages);
                     resp.setStatus(HttpServletResponse.SC_OK);
                     out.print(json);
                 } else if (clientIdParam != null) {
+                    if(!role.equals("ADMIN")){
+                        resp.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                        out.print("{\"error\": \"Admins only.\"}");
+                        return;
+                    }
                     int clientId = Integer.parseInt(clientIdParam);
                     List<DeliveryPackage> packages = packageDAO.findByClientId(clientId);
                     String json = gson.toJson(packages);
                     resp.setStatus(HttpServletResponse.SC_OK);
                     out.print(json);
                 } else {
-                    List<DeliveryPackage> packages = packageDAO.findAll();
-                    String json = gson.toJson(packages);
-                    resp.setStatus(HttpServletResponse.SC_OK);
-                    out.print(json);
+                    if(role.equals("CLIENT")){
+                        int clientId = userId;
+                        List<DeliveryPackage> packages = packageDAO.findByClientId(clientId);
+                        String json = gson.toJson(packages);
+                        resp.setStatus(HttpServletResponse.SC_OK);
+                        out.print(json);
+                        return;
+                    }
+                    else if(role.equals("ADMIN")){
+                        List<DeliveryPackage> packages = packageDAO.findAll();
+                        String json = gson.toJson(packages);
+                        resp.setStatus(HttpServletResponse.SC_OK);
+                        out.print(json);
+                        return;
+                    }
                 }
             } else {
+                
                 String[] splits = pathInfo.split("/");
                 if (splits.length > 1) {
                     int id = Integer.parseInt(splits[1]);
                     DeliveryPackage pkg = packageDAO.findById(id);
-
+                    if(!role.equals("ADMIN") || !packageDAO.ownsPackage(userId , id)){
+                        resp.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                        out.print("{\"error\": \"You can only access your own packages.\"}");
+                        return;
+                    }
                     if (pkg != null) {
                         String json = gson.toJson(pkg);
                         resp.setStatus(HttpServletResponse.SC_OK);
