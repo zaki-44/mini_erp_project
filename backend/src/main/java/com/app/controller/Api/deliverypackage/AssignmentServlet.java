@@ -5,7 +5,6 @@ import jakarta.servlet.http.*;
 import jakarta.servlet.annotation.*;
 import java.io.*;
 import java.sql.SQLException;
-import java.sql.Timestamp;
 import java.util.List;
 
 import com.google.gson.Gson;
@@ -79,8 +78,6 @@ public class AssignmentServlet extends HttpServlet {
      * * Actions for CLIENT:
      * - /request/{packageId}
      * * Actions for DELIVERER:
-     * - /accept/{affectationId}
-     * - /reject/{affectationId}
      * - /complete/{affectationId}
      */
     @Override
@@ -88,7 +85,6 @@ public class AssignmentServlet extends HttpServlet {
         resp.setContentType("application/json");
         PrintWriter out = resp.getWriter();
 
-        // 1. Validate Auth
         Integer userId = (Integer) req.getAttribute("userId");
         String role = (String) req.getAttribute("userRole");
 
@@ -98,7 +94,6 @@ public class AssignmentServlet extends HttpServlet {
             return;
         }
 
-        // 2. Parse URL
         String pathInfo = req.getPathInfo(); 
         if (pathInfo == null || pathInfo.split("/").length < 3) {
             resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
@@ -119,24 +114,6 @@ public class AssignmentServlet extends HttpServlet {
                         return;
                     }
                     handleRequestDriver(id, userId, out);
-                    break;
-
-                case "accept":
-                    if (!role.equals("DELIVERER")) {
-                        resp.setStatus(HttpServletResponse.SC_FORBIDDEN);
-                        out.print("{\"error\": \"Only deliverers can accept jobs\"}");
-                        return;
-                    }
-                    handleAccept(id, userId, out);
-                    break;
-
-                case "reject":
-                    if (!role.equals("DELIVERER")) {
-                        resp.setStatus(HttpServletResponse.SC_FORBIDDEN);
-                        out.print("{\"error\": \"Only deliverers can reject jobs\"}");
-                        return;
-                    }
-                    handleReject(id, userId, out);
                     break;
 
                 case "complete":
@@ -179,52 +156,6 @@ public class AssignmentServlet extends HttpServlet {
         out.print(gson.toJson(json));
     }
 
-    private void handleAccept(int affectationId, int delivererId, PrintWriter out) throws SQLException {
-        Affectation aff = affectationDAO.findById(affectationId);
-
-        if (aff == null || aff.getIdDeliverer() != delivererId) {
-            out.print("{\"error\": \"Assignment not found or not yours\"}");
-            return;
-        }
-
-        if (aff.getStatus() == AffectationStatus.PENDING) {
-            aff.setStatus(AffectationStatus.ACCEPTED);
-            aff.setAssignedAt(new Timestamp(System.currentTimeMillis()));
-            affectationDAO.update(aff);
-
-            DeliveryPackage pkg = packageDAO.findById(aff.getIdPackage());
-            pkg.setStatus(PackageStatus.PICKEDUP); 
-            packageDAO.update(pkg);
-
-            out.print("{\"message\": \"Assignment Accepted\"}");
-        } else {
-            out.print("{\"error\": \"Cannot accept. Current status: " + aff.getStatus() + "\"}");
-        }
-    }
-
-    private void handleReject(int affectationId, int delivererId, PrintWriter out) throws SQLException {
-        Affectation aff = affectationDAO.findById(affectationId);
-
-        if (aff == null || aff.getIdDeliverer() != delivererId) {
-            out.print("{\"error\": \"Assignment not found or not yours\"}");
-            return;
-        }
-
-        if (aff.getStatus() == AffectationStatus.PENDING) {
-            aff.setStatus(AffectationStatus.REJECTED);
-            affectationDAO.update(aff);
-
-            DeliveryPackage pkg = packageDAO.findById(aff.getIdPackage());
-            pkg.setStatus(PackageStatus.CREATED);
-            packageDAO.update(pkg);
-
-            revertDelivererLoad(delivererId, pkg.getWeight());
-
-            out.print("{\"message\": \"Assignment Rejected\"}");
-        } else {
-            out.print("{\"error\": \"Cannot reject. Current status: " + aff.getStatus() + "\"}");
-        }
-    }
 
     private void handleComplete(int affectationId, int delivererId, PrintWriter out) throws SQLException {
         Affectation aff = affectationDAO.findById(affectationId);

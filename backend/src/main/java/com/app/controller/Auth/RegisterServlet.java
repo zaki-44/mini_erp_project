@@ -12,7 +12,7 @@ import com.app.util.EmailService;
 import com.app.util.JWTUtil;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
-
+import com.app.util.PasswordUtils;
 
 @WebServlet("/signup")
 public class RegisterServlet extends HttpServlet {
@@ -27,6 +27,9 @@ public class RegisterServlet extends HttpServlet {
         String username = jsonObject.get("username").getAsString();
         String email = jsonObject.get("email").getAsString();
         String password = jsonObject.get("password").getAsString();
+        // String salt = PasswordUtils.getSalt();
+        // password = PasswordUtils.hashPassword(password, salt);
+        // password = password + ":" + salt;
         String phoneNumber = jsonObject.get("phonenumber").getAsString();
         Role role = Role.valueOf(jsonObject.get("role").getAsString().toUpperCase());
         User newUser = new User(0, email , username, password, firstname, lastname, phoneNumber, role , false);

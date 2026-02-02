@@ -24,16 +24,20 @@ public class NotificationService {
             String sourceClientEmail = userDAO.findById(sourceClientId).getEmail();
             String sourceClientSubject = "Package Assigned to Deliverer";
             String sourceClientMessage = "Your package ID: " + packageId + " has been assigned to a deliverer.";
+            
             EmailService.sendEmail(sourceClientEmail, sourceClientSubject, sourceClientMessage);
             Notification sourceClientNotification = new Notification(packageId, sourceClientId, sourceClientMessage,
                     NotificationType.ASSIGNMENT, new Timestamp(System.currentTimeMillis()));
             notificationDAO.insert(sourceClientNotification);
+            
             Notification clientNotification = new Notification(packageId, destinationClientId, clientMessage,
                     NotificationType.ASSIGNMENT, new Timestamp(System.currentTimeMillis()));
             notificationDAO.insert(clientNotification);
             EmailService.sendEmail(clientEmail, clientSubject, clientMessage);
+            
             Notification delivererNotification = new Notification(packageId, delivererId, delivererMessage,
                     NotificationType.ASSIGNMENT, new Timestamp(System.currentTimeMillis()));
+                    
             notificationDAO.insert(delivererNotification);
             EmailService.sendEmail(delivererEmail, delivererSubject, delivererMessage);
         } catch (Exception e) {
