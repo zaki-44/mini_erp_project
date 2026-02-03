@@ -72,15 +72,16 @@ export function LoginPage({ onLogin, onShowRegister, className }: LoginPageProps
 
   return (
     <div className={cn("flex min-h-screen items-center justify-center p-4 bg-muted/40", className)}>
-      <div className="w-full max-w-md space-y-4">
+      <div className="w-full max-w-lg space-y-4">
         <div className="text-center space-y-2">
           <h1 className="text-3xl font-bold tracking-tighter">Welcome Back</h1>
           <p className="text-muted-foreground">Sign in to Livrili</p>
         </div>
 
         <Card>
-          <CardContent className="pt-6">
-            <form onSubmit={handleSubmit} className="space-y-4">
+          <CardContent className="pt-6 flex items-center">
+            <div className='w-[50%]'><img src="\src\logo-mdiwasi.png" alt="" /></div>
+            <form onSubmit={handleSubmit} className="space-y-4 w-[50%]">
               <FieldGroup>
                 <Field>
                   <FieldLabel>Email</FieldLabel>

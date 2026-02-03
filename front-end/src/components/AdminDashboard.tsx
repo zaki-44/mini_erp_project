@@ -127,7 +127,8 @@ export function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
       <header className="bg-white border-b sticky top-0 z-30 px-6 py-4 flex items-center justify-between shadow-sm">
         <div className="flex items-center gap-2">
           <div className="bg-primary/10 p-2 rounded-lg">
-            <Package className="h-6 w-6 text-primary" />
+            {/* <Package className="h-6 w-6 text-primary" /> */}
+            <div className='w-[70px]'><img src="\src\logo-mdiwasi.png" alt="" /></div>
           </div>
           <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/60">
             Admin Dashboard
