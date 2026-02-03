@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { LoginPage } from './components/LoginPage';
 import { RegisterPage } from './components/RegisterPage';
 import { EmailVerificationPage } from './components/EmailVerificationPage';
@@ -8,22 +8,41 @@ import { ClientDashboard } from './components/ClientDashboard';
 import { LivreurDashboard } from './components/LivreurDashboard';
 import { register, logout as apiLogout } from './lib/api';
 
-type UserType = 'admin' | 'client' | 'livreur';
+// 1. UPDATE: Match API Role names (Uppercase)
+type UserType = 'ADMIN' | 'CLIENT' | 'DELIVERER'; 
 type AppView = 'login' | 'register' | 'verify' | 'dashboard';
 
+// 2. UPDATE: Match API response structure
 interface AuthUser {
-  id: string;
-  name: string;
-  email: string;
-  type: UserType;
+  id: number;          // Changed from string to number
+  role: UserType;      // Renamed from 'type' to 'role' to match API
+  name?: string;       // Made optional
+  email?: string;      // Made optional
 }
 
 export default function App() {
-  const [user, setUser] = useState<AuthUser | null>(null);
-  const [view, setView] = useState<AppView>('login');
+  // 3. FIX: Initialize user state from Local Storage
+  // This function runs only once when the page refreshes.
+  const [user, setUser] = useState<AuthUser | null>(() => {
+    try {
+      const savedUser = localStorage.getItem('app_user');
+      return savedUser ? JSON.parse(savedUser) : null;
+    } catch (error) {
+      console.error("Failed to parse user from storage", error);
+      return null;
+    }
+  });
+
+  // 4. FIX: Initialize view based on whether user exists
+  const [view, setView] = useState<AppView>(() => {
+    return localStorage.getItem('app_user') ? 'dashboard' : 'login';
+  });
+
   const [verificationEmail, setVerificationEmail] = useState<string>('');
 
   const handleLogin = (userData: AuthUser) => {
+    // 5. FIX: Save user to Local Storage on login
+    localStorage.setItem('app_user', JSON.stringify(userData));
     setUser(userData);
     setView('dashboard');
   };
@@ -31,19 +50,18 @@ export default function App() {
   const handleLogout = async () => {
     try {
       await apiLogout();
-      setUser(null);
-      setView('login');
     } catch (error) {
-      // Even if logout fails on server, clear local state
+      console.error('Logout error:', error);
+    } finally {
+      // 6. FIX: Remove user from Local Storage on logout
+      localStorage.removeItem('app_user');
       setUser(null);
       setView('login');
-      console.error('Logout error:', error);
     }
   };
 
   const handleRegister = async (registerData: RegisterData) => {
     const response = await register(registerData);
-    // Registration successful, will redirect to verification via RegisterPage
     return response;
   };
 
@@ -79,9 +97,10 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-neutral-50">
-      {user.type === 'admin' && <AdminDashboard user={user} onLogout={handleLogout} />}
-      {user.type === 'client' && <ClientDashboard user={user} onLogout={handleLogout} />}
-      {user.type === 'livreur' && <LivreurDashboard user={user} onLogout={handleLogout} />}
+      {/* 7. UPDATE: Render Dashboard based on Role */}
+      {user.role === 'ADMIN' && <AdminDashboard user={user} onLogout={handleLogout} />}
+      {user.role === 'CLIENT' && <ClientDashboard user={user} onLogout={handleLogout} />}
+      {user.role === 'DELIVERER' && <LivreurDashboard user={user} onLogout={handleLogout} />}
     </div>
   );
 }

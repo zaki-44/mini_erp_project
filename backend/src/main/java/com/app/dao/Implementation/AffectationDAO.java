@@ -203,4 +203,27 @@ public class AffectationDAO implements DAO<Affectation> {
         }
         return client;
     }
+    public boolean driverHasPackage(int driverId , int packageId) throws SQLException {
+        String sql = "SELECT COUNT(*) AS count FROM affectation WHERE id_deliverer = ? AND id_package = ?";
+        boolean hasPackage = false;
+
+        try (Connection conn = Database.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, driverId);
+            stmt.setInt(2, packageId);
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    hasPackage = rs.getInt("count") > 0;
+                }
+            }
+        }
+        catch(SQLException e) {
+            System.out.println("Error checking if driver has package: " + e.getMessage());
+            throw e;
+        }
+
+        return hasPackage;
+    }
 }

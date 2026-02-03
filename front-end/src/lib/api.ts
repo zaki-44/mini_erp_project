@@ -89,32 +89,57 @@ export async function logout(): Promise<LogoutResponse> {
 export async function fetchOrders(): Promise<Order[]> {
   return apiFetch<Order[]>('/api/packages');
 }
-
+// fetch orders from one user by his id
 export async function fetchOrdersById(id: number): Promise<Order[]> {
   return apiFetch<Order[]>(`/api/packages?idClient=${id}`);
 }
-
+// fetch order by its id
 export async function fetchOrderById(orderId: string): Promise<Order> {
   return apiFetch<Order>(`/api/packages/${orderId}`);
 }
 
-export async function createOrder(orderData: any): Promise<Order> {
-  // Ensure orderData maps correctly to: 
-  // { idClientSource, addressSource, addressDestination, weight, price }
+// Define the interface based strictly on PDF Page 5 [cite: 120-127]
+export interface CreatePackagePayload {
+  vehicleTypeNeeded: 'CAR' | 'BIKE' | 'TRUCK'; // Add your specific types
+  addressSource: string;
+  addressDestination: string;
+  description: string;
+  weight: number;
+  price: number;
+  idClientDestination: number;
+}
+
+export async function createOrder(orderData: CreatePackagePayload): Promise<Order> {
   return apiFetch<Order>('/api/packages', {
     method: 'POST',
     body: JSON.stringify(orderData),
   });
 }
 
-export async function updateOrderStatus(
+// 1. Define the correct shape for updates based on PDF Page 6
+export interface UpdatePackageData {
+  description?: string;
+  price?: number;
+}
+
+// Allow updating ANY field by making them all optional
+export interface UpdatePackageData {
+  vehicleTypeNeeded?: 'BIKE' | 'CAR' | 'TRUCK';
+  addressSource?: string;
+  addressDestination?: string;
+  description?: string;
+  weight?: number;
+  price?: number;
+  idClientDestination?: number;
+}
+
+export async function updatePackage(
   orderId: string,
-  status: string // e.g., "DELIVERED"
+  data: UpdatePackageData
 ): Promise<Order> {
-  // Backend uses PUT for updates
   return apiFetch<Order>(`/api/packages/${orderId}`, {
     method: 'PUT',
-    body: JSON.stringify({ status }), 
+    body: JSON.stringify(data), 
   });
 }
 

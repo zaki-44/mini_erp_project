@@ -44,8 +44,9 @@ public class LoginServlet extends HttpServlet {
             }
             
             LoginRequest loginRequest = gson.fromJson(sb.toString(), LoginRequest.class);
-
+            
             User user = userDAO.getByEmail(loginRequest.email);
+            // System.out.println(user.getEmail() + user.getPasswordHash());
             if (user != null && user.getPasswordHash().equals(loginRequest.password) && user.isEmailVerified()) {
                 
                 String token = JWTUtil.generateToken(user.getId(), user.getRole());

@@ -4,15 +4,35 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { StatusBadge } from './StatusBadge';
-import { Package, Users, CheckCircle, Search, LogOut, RefreshCw } from 'lucide-react';
-import type { Order, Deliverer } from '../types';
-import { fetchOrders, fetchOrdersById, fetchOrderById, fetchPendingDeliverers, approveDeliverer } from '../lib/api';
+import { Package, Users, CheckCircle, Search, LogOut, RefreshCw, Truck } from 'lucide-react';
+import type { Order } from '../types';
+import { 
+  fetchOrders, 
+  fetchOrdersById, 
+  fetchOrderById, 
+  fetchPendingDeliverers, 
+  approveDeliverer 
+} from '../lib/api';
+
+// 1. UPDATE: Interface matches your strict lowercase requirements
+interface PendingDeliverer {
+  id: number;
+  firstname: string;
+  lastname: string;
+  username: string;
+  email: string;
+  phonenumber: string;
+  vehicletype: 'BIKE' | 'CAR' | 'TRUCK';
+  serialnumber: string;
+  maxweight: number;
+  city: string;
+}
 
 interface AuthUser {
-  id: string;
-  name: string;
-  email: string;
-  type: string;
+  id: number;
+  name?: string;
+  email?: string;
+  role: 'CLIENT' | 'ADMIN' | 'DELIVERER';
 }
 
 interface AdminDashboardProps {
@@ -22,258 +42,301 @@ interface AdminDashboardProps {
 
 export function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
   const [orders, setOrders] = useState<Order[]>([]);
-  const [pendingDeliverers, setPendingDeliverers] = useState<Deliverer[]>([]);
+  // 2. UPDATE: State uses the new strict interface
+  const [pendingDeliverers, setPendingDeliverers] = useState<PendingDeliverer[]>([]);
+  
+  // Search Filters
   const [clientIdFilter, setClientIdFilter] = useState('');
   const [orderIdFilter, setOrderIdFilter] = useState('');
+  
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     loadInitialData();
-    
   }, []);
 
   const loadInitialData = async () => {
     setLoading(true);
     setError(null);
     try {
-      const [allOrders, deliverers] = await Promise.all([
+      // We cast the result of fetchPendingDeliverers because the API might return "any" 
+      // but we want to enforce our PendingDeliverer shape
+      const [allOrders, pending] = await Promise.all([
         fetchOrders(),
         fetchPendingDeliverers()
-        
       ]);
-      // console.log(deliverers)
       setOrders(allOrders);
-      setPendingDeliverers(deliverers);
-    } catch (err) {
-      console.error(err);
-      setError('Failed to load dashboard data');
+      setPendingDeliverers(pending as unknown as PendingDeliverer[]);
+    } catch (err: any) {
+      console.error('Failed to load admin data:', err);
+      setError('Failed to load data. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSearchByClient = async () => {
+  const handleSearchByClientId = async () => {
+    if (!clientIdFilter.trim()) return;
     setLoading(true);
-    setError(null);
     try {
-      if (clientIdFilter.trim()) {
-        const id = parseInt(clientIdFilter);
-        if (isNaN(id)) {
-          setError('Client ID must be a number');
-          setLoading(false);
-          return;
-        }
-        const clientOrders = await fetchOrdersById(id);
-        setOrders(clientOrders);
-      } else {
-        const allOrders = await fetchOrders();
-        setOrders(allOrders);
-      }
+      const clientOrders = await fetchOrdersById(parseInt(clientIdFilter));
+      setOrders(clientOrders);
     } catch (err) {
       console.error(err);
-      setError('Failed to fetch orders');
+      setError(`Could not find orders for Client ID ${clientIdFilter}`);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSearchByOrder = async () => {
+  const handleSearchByOrderId = async () => {
+    if (!orderIdFilter.trim()) return;
     setLoading(true);
-    setError(null);
     try {
-      if (orderIdFilter.trim()) {
-        const order = await fetchOrderById(orderIdFilter);
-        setOrders([order]);
-      } else {
-        const allOrders = await fetchOrders();
-        setOrders(allOrders);
-      }
+      const order = await fetchOrderById(orderIdFilter);
+      setOrders(order ? [order] : []);
     } catch (err) {
       console.error(err);
-      setError('Failed to fetch order');
-      setOrders([]);
+      setError(`Could not find Order #${orderIdFilter}`);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleApproveDeliverer = async (id: string) => {
+  const handleApproveDeliverer = async (delivererId: string) => {
     try {
-      await approveDeliverer(id);
-      setPendingDeliverers(pendingDeliverers.filter(d => String(d.id) !== id));
+      await approveDeliverer(delivererId);
+      // Remove from list immediately to update UI
+      setPendingDeliverers(prev => prev.filter(d => String(d.id) !== delivererId));
+      alert("Deliverer approved successfully.");
     } catch (err) {
-      console.error(err);
-      setError('Failed to approve deliverer');
+      console.error('Failed to approve:', err);
+      alert('Failed to approve deliverer.');
     }
+  };
+
+  const handleReset = () => {
+    setClientIdFilter('');
+    setOrderIdFilter('');
+    loadInitialData();
   };
 
   return (
     <>
-      <header className="bg-white border-b border-neutral-200 sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-neutral-900">Delivery ERP - Admin</h1>
-              <p className="text-neutral-500 text-sm">Welcome, {user.name}</p>
-            </div>
-            <Button variant="outline" onClick={onLogout}>
-              <LogOut className="size-4 mr-2" />
-              Logout
-            </Button>
+      <header className="bg-white border-b sticky top-0 z-30 px-6 py-4 flex items-center justify-between shadow-sm">
+        <div className="flex items-center gap-2">
+          <div className="bg-primary/10 p-2 rounded-lg">
+            <Package className="h-6 w-6 text-primary" />
           </div>
+          <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/60">
+            Admin Dashboard
+          </h1>
+        </div>
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={loadInitialData} title="Refresh Data">
+            <RefreshCw className="h-5 w-5 text-muted-foreground" />
+          </Button>
+          <div className="text-right hidden sm:block">
+            <p className="text-sm font-medium">{user.name || 'Administrator'}</p>
+            <p className="text-xs text-muted-foreground">{user.email}</p>
+          </div>
+          <Button variant="ghost" size="icon" onClick={onLogout} className="text-muted-foreground hover:text-destructive">
+            <LogOut className="h-5 w-5" />
+          </Button>
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8">
+      <main className="max-w-6xl mx-auto p-6 space-y-6">
         {error && (
-          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-900">
-            <p className="text-sm">⚠️ {error}</p>
+          <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-md border border-destructive/20">
+            {error}
           </div>
         )}
 
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Card>
+            <CardContent className="p-6 flex items-center gap-4">
+              <div className="p-3 bg-blue-100 text-blue-600 rounded-full">
+                <Package className="h-6 w-6" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Total Packages</p>
+                <p className="text-2xl font-bold">{orders.length}</p>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="p-6 flex items-center gap-4">
+              <div className="p-3 bg-orange-100 text-orange-600 rounded-full">
+                <Users className="h-6 w-6" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Pending Approvals</p>
+                <p className="text-2xl font-bold">{pendingDeliverers.length}</p>
+              </div>
+            </CardContent>
+          </Card>
+
+           <Card>
+            <CardContent className="p-6 flex items-center gap-4">
+              <div className="p-3 bg-green-100 text-green-600 rounded-full">
+                <CheckCircle className="h-6 w-6" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">System Status</p>
+                <p className="text-2xl font-bold text-green-600">Active</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
         <Tabs defaultValue="packages" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="packages">
-              <Package className="size-4 mr-2" />
-              Manage Packages
-            </TabsTrigger>
-            <TabsTrigger value="deliverers">
-              <Users className="size-4 mr-2" />
-              Pending Deliverers
+          <TabsList>
+            <TabsTrigger value="packages">Package Management</TabsTrigger>
+            <TabsTrigger value="approvals">
+              Driver Approvals 
               {pendingDeliverers.length > 0 && (
-                <span className="ml-2 bg-red-500 text-white text-xs rounded-full px-2 py-0.5">
+                <span className="ml-2 bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">
                   {pendingDeliverers.length}
                 </span>
               )}
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="packages" className="space-y-6">
+          {/* --- TAB: PACKAGES --- */}
+          <TabsContent value="packages">
             <Card>
-              <CardHeader className="flex flex-col space-y-4 pb-2">
-                <div className="flex items-center justify-between">
-                  <CardTitle>All Packages</CardTitle>
-                  <Button size="sm" variant="ghost" onClick={() => { setClientIdFilter(''); setOrderIdFilter(''); loadInitialData(); }}>
-                    <RefreshCw className="size-4" />
-                  </Button>
-                </div>
-                <div className="flex flex-wrap gap-4">
-                  <div className="flex items-center space-x-2">
-                    <Input
-                      placeholder="Filter by Client ID"
-                      className="h-9 w-[200px]"
-                      value={clientIdFilter}
-                      onChange={(e) => setClientIdFilter(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && handleSearchByClient()}
-                    />
-                    <Button size="sm" variant="secondary" onClick={handleSearchByClient}>
-                      <Search className="size-4 mr-2" />
-                      Client
-                    </Button>
+              <CardHeader>
+                <CardTitle className="flex justify-between items-center">
+                  <span>All Packages</span>
+                  <div className="flex gap-2">
+                    <div className="flex gap-2">
+                      <Input 
+                        placeholder="Client ID..." 
+                        className="w-32 h-9 text-sm"
+                        value={clientIdFilter}
+                        onChange={(e) => setClientIdFilter(e.target.value)}
+                      />
+                      <Button variant="outline" size="sm" onClick={handleSearchByClientId}>
+                        <Search className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <div className="flex gap-2">
+                      <Input 
+                        placeholder="Order ID..." 
+                        className="w-32 h-9 text-sm"
+                        value={orderIdFilter}
+                        onChange={(e) => setOrderIdFilter(e.target.value)}
+                      />
+                      <Button variant="outline" size="sm" onClick={handleSearchByOrderId}>
+                        <Search className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <Button variant="ghost" size="sm" onClick={handleReset}>Reset</Button>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <Input
-                      placeholder="Search by Order ID"
-                      className="h-9 w-[200px]"
-                      value={orderIdFilter}
-                      onChange={(e) => setOrderIdFilter(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && handleSearchByOrder()}
-                    />
-                    <Button size="sm" variant="secondary" onClick={handleSearchByOrder}>
-                      <Search className="size-4 mr-2" />
-                      Order
-                    </Button>
-                  </div>
-                </div>
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {orders.length === 0 ? (
-                    <div className="text-center py-12 text-neutral-500">
-                      <Package className="size-12 mx-auto mb-3 opacity-30" />
-                      <p>No packages found</p>
-                    </div>
-                  ) : (
-                    orders.map(order => (
-                      <div
-                        key={order.idPackage}
-                        className="border border-neutral-200 rounded-lg p-4 hover:border-neutral-300 transition-colors"
-                      >
-                        <div className="flex items-start justify-between mb-2">
-                          <div>
-                            <p className="font-medium text-neutral-900">Order #{order.idPackage}</p>
-                            <p className="text-sm text-neutral-500">{order.description}</p>
+                {loading && orders.length === 0 ? (
+                  <div className="text-center py-8">Loading packages...</div>
+                ) : orders.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">No packages found.</div>
+                ) : (
+                  <div className="space-y-4">
+                    {orders.map((order) => (
+                      <div key={order.idPackage} className="flex items-center justify-between p-4 border rounded-lg hover:bg-neutral-50">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono text-sm bg-neutral-100 px-2 py-0.5 rounded">#{order.idPackage}</span>
+                            <StatusBadge status={order.status} />
                           </div>
-                          <StatusBadge status={order.status} />
+                          <p className="text-sm font-medium">{order.description}</p>
+                          <div className="text-xs text-muted-foreground flex gap-4">
+                            <span>From: Client #{order.idClientSource}</span>
+                            <span>To: Client #{order.idClientDestination || '?'}</span>
+                          </div>
                         </div>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-neutral-600">
-                          <div>
-                            <span className="block text-xs text-neutral-400">From Client</span>
-                            #{order.idClientSource}
-                          </div>
-                          <div>
-                            <span className="block text-xs text-neutral-400">To Client</span>
-                            #{order.idClientDestination || 'N/A'}
-                          </div>
-                          <div>
-                            <span className="block text-xs text-neutral-400">Weight</span>
-                            {order.weight} kg
-                          </div>
-                          <div>
-                            <span className="block text-xs text-neutral-400">Price</span>
-                            ${order.price}
-                          </div>
+                        <div className="text-right">
+                          <p className="font-bold">{order.price} DA</p>
+                          <p className="text-xs text-muted-foreground">{new Date(order.createdAt).toLocaleDateString()}</p>
                         </div>
                       </div>
-                    ))
-                  )}
-                </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
 
-          <TabsContent value="deliverers" className="space-y-6">
+          {/* --- TAB: APPROVALS --- */}
+          <TabsContent value="approvals">
             <Card>
               <CardHeader>
-                <CardTitle>Pending Approvals</CardTitle>
+                <CardTitle>Pending Deliverer Approvals</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {pendingDeliverers.length === 0 ? (
-                    <div className="text-center py-12 text-neutral-500">
-                      <Users className="size-12 mx-auto mb-3 opacity-30" />
-                      <p>No pending deliverers</p>
-                    </div>
-                  ) : (
-                    pendingDeliverers.map(deliverer => (
+                {pendingDeliverers.length === 0 ? (
+                  <div className="text-center py-12 text-muted-foreground">
+                    <CheckCircle className="h-12 w-12 mx-auto mb-4 opacity-20" />
+                    <p>No pending approvals.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {pendingDeliverers.map(deliverer => (
                       <div
                         key={deliverer.id}
-                        className="flex items-center justify-between border border-neutral-200 rounded-lg p-4"
+                        className="flex items-center justify-between border border-neutral-200 rounded-lg p-4 bg-white shadow-sm"
                       >
-                        <div>
-                          <p className="font-medium text-neutral-900">
-                            {deliverer.firstName} {deliverer.lastName}
-                          </p>
-                          <p className="text-sm text-neutral-500">{deliverer.email}</p>
-                          <div className="flex gap-2 mt-1 text-xs text-neutral-400">
-                            <span>{deliverer.city}</span>
-                            <span>•</span>
-                            <span>{deliverer.vehicleType}</span>
+                        <div className="flex items-start gap-4">
+                           <div className="bg-orange-100 p-2 rounded-full mt-1">
+                             <Truck className="h-5 w-5 text-orange-600" />
+                           </div>
+                           
+                           <div>
+                            {/* 3. UPDATE: Access fields using strict lowercase names */}
+                            <p className="font-medium text-neutral-900 text-lg">
+                              {deliverer.firstname} {deliverer.lastname}
+                            </p>
+                            <p className="text-sm text-neutral-500">{deliverer.email}</p>
+                            
+                            <div className="flex flex-wrap gap-2 mt-2 text-xs font-mono">
+                              {/* Vehicle Type */}
+                              <div className="bg-neutral-100 px-2 py-1 rounded font-bold uppercase text-neutral-700">
+                                {deliverer.vehicletype}
+                              </div>
+
+                              {/* Max Weight */}
+                              <div className="bg-neutral-100 px-2 py-1 rounded text-neutral-600">
+                                Max: {deliverer.maxweight}kg
+                              </div>
+
+                              {/* Serial Number */}
+                              <div className="bg-neutral-100 px-2 py-1 rounded text-neutral-600">
+                                SN: {deliverer.serialnumber}
+                              </div>
+
+                              {/* City */}
+                              <div className="bg-neutral-100 px-2 py-1 rounded text-neutral-600">
+                                {deliverer.city}
+                              </div>
+                            </div>
                           </div>
                         </div>
+
                         <Button
                           size="sm"
                           onClick={() => handleApproveDeliverer(String(deliverer.id))}
-                          className="bg-green-600 hover:bg-green-700"
+                          className="bg-green-600 hover:bg-green-700 h-10 px-6"
                         >
                           <CheckCircle className="size-4 mr-2" />
                           Approve
                         </Button>
                       </div>
-                    ))
-                  )}
-                </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>

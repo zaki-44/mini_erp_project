@@ -5,16 +5,33 @@ import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
 import { Label } from './ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { StatusBadge } from './StatusBadge';
-import { Plus, MapPin, Package, LogOut, Send, Inbox, CheckCircle, X, Search, Truck, Star, Bell } from 'lucide-react';
-import type { Order, User } from '../types';
-import { fetchOrdersById, fetchOrderById,fetchOrders, createOrder, updateOrderStatus, deleteOrder, requestDriver, submitRating, searchClients, fetchNotifications, markNotificationAsRead, type Notification } from '../lib/api';
+import { 
+  Plus, MapPin, Package, LogOut, Search, Truck, Bell, 
+  User as UserIcon, X, Pencil, Save, Trash2, UserPlus, Star // Added Star icon
+} from 'lucide-react';
+import type { Order } from '../types';
+import { 
+  fetchOrders, 
+  fetchOrderById, 
+  createOrder, 
+  updatePackage,
+  deleteOrder,
+  requestDriver,
+  submitRating, // 1. IMPORT ADDED
+  searchClients, 
+  fetchNotifications, 
+  markNotificationAsRead, 
+  type Notification,
+  type CreatePackagePayload 
+} from '../lib/api';
 
 interface AuthUser {
-  id: string;
-  name: string;
-  email: string;
-  type: string;
+  id: number;
+  name?: string;
+  email?: string;
+  role: 'CLIENT' | 'ADMIN' | 'DELIVERER';
 }
 
 interface ClientDashboardProps {
@@ -22,728 +39,636 @@ interface ClientDashboardProps {
   onLogout: () => void;
 }
 
-export function ClientDashboard({ user, onLogout }: ClientDashboardProps) {
-  const [allOrders, setAllOrders] = useState<Order[]>([]);
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [allUsers, setAllUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  
-  // Orders sent by this client
-  const [sentOrders, setSentOrders] = useState<Order[]>([]);
-  
-  // Orders received by this client
-  const [receivedOrders, setReceivedOrders] = useState<Order[]>([]);
+interface NewOrderState {
+  recipientId: number | null;
+  recipientName: string;
+  pickupAddress: string;
+  deliveryAddress: string;
+  description: string;
+  weight: string;
+  price: string;
+  vehicleType: 'CAR' | 'BIKE' | 'TRUCK' ;
+}
 
-  const [showNewOrderForm, setShowNewOrderForm] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<User[]>([]);
-  const [selectedReceiver, setSelectedReceiver] = useState<User | null>(null);
-  const [newOrder, setNewOrder] = useState({
+export function ClientDashboard({ user, onLogout }: ClientDashboardProps) {
+  const [myOrders, setMyOrders] = useState<Order[]>([]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [loading, setLoading] = useState(true);
+  
+  // Search State
+  const [orderIdSearch, setOrderIdSearch] = useState('');
+  
+  // Edit Mode State
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editForm, setEditForm] = useState({
     description: '',
     weight: '',
-    pickupAddress: '',
-    vehicleTypeNeeded: 'CAR',
-    deliveryInstructions: '',
-    price: '',
-    addressDestination: '',
+    price: ''
   });
-  
-  const [ratingOrderId, setRatingOrderId] = useState<string | null>(null);
-  const [ratingValue, setRatingValue] = useState(5);
-  const [ratingComment, setRatingComment] = useState('');
-  const [orderSearchId, setOrderSearchId] = useState('');
 
-  // Fetch data on component mount
+  // 2. RATING STATE ADDED
+  const [ratingId, setRatingId] = useState<number | null>(null);
+  const [ratingData, setRatingData] = useState({
+    rating: 5,
+    comment: ''
+  });
+
+  // Create Order Form State
+  const [newOrder, setNewOrder] = useState<NewOrderState>({
+    recipientId: null,
+    recipientName: '',
+    pickupAddress: '',
+    deliveryAddress: '',
+    description: '',
+    weight: '',
+    price: '',
+    vehicleType: 'BIKE'
+  });
+
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+
   useEffect(() => {
-    const loadData = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const [ordersData, notificationsData] = await Promise.all([
-          fetchOrders(),
-          fetchNotifications()
-        ]);
-        setAllOrders(ordersData);
-        setNotifications(notificationsData);
-        setAllUsers([]); // TODO: Implement fetchUsers API if needed
-        
-        // Filter orders for this user - using idClientSource for sent, idClientDestination for received
-        // Note: user.id is string, but idClientSource is number, so we need to convert
-        const userIdNum = parseInt(user.id);
-        setSentOrders(ordersData.filter(o => o.idClientSource === userIdNum));
-        setReceivedOrders(ordersData.filter(o => o.idClientDestination === userIdNum));
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load data');
-        setAllOrders([]);
-        setNotifications([]);
-        setAllUsers([]);
-        setSentOrders([]);
-        setReceivedOrders([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadData();
+    loadDashboardData();
   }, [user.id]);
 
-  const handleSearchUsers = async (query: string) => {
-    setSearchQuery(query);
-    if (query.trim().length < 2) {
-      setSearchResults([]);
-      return;
-    }
-    
+  async function loadDashboardData() {
     try {
-      const results = await searchClients(query);
-      setSearchResults(results);
-    } catch (err) {
-      console.error("Search failed", err);
+      setLoading(true);
+      const orders = await fetchOrders();
+      setMyOrders(orders);
+      
+      const notifs = await fetchNotifications();
+      setNotifications(notifs);
+    } catch (error) {
+      console.error("Failed to load dashboard:", error);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // --- RATING FUNCTION ---
+  const openRating = (orderId: number) => {
+    setRatingId(orderId);
+    setRatingData({ rating: 5, comment: '' });
+  };
+
+  const cancelRating = () => {
+    setRatingId(null);
+  };
+
+  const handleRateDriver = async (delivererId: number) => {
+    if (!ratingId) return;
+
+    try {
+      await submitRating({
+        idDeliverer: delivererId,
+        rating: ratingData.rating,
+        comment: ratingData.comment
+      });
+      
+      alert("Rating submitted successfully!");
+      setRatingId(null);
+    } catch (error) {
+      console.error("Failed to submit rating", error);
+      alert("Failed to submit rating. Please try again.");
     }
   };
 
-  const handleSelectReceiver = (receiver: any) => {
-    setSelectedReceiver(receiver);
-    setSearchQuery(receiver.name || `${receiver.firstName} ${receiver.lastName}`);
-    setSearchResults([]);
-  };
-
-  const handleSearchOrder = async () => {
-    if (!orderSearchId.trim()) {
-      const userIdNum = parseInt(user.id);
-      setSentOrders(allOrders.filter(o => o.idClientSource === userIdNum));
-      return;
-    }
-
+  // --- REQUEST DRIVER FUNCTION ---
+  const handleRequestDriver = async (orderId: number) => {
     try {
-      const order = await fetchOrderById(orderSearchId);
-      if (order && order.idClientSource === parseInt(user.id)) {
-        setSentOrders([order]);
-      } else {
-        setSentOrders([]);
-      }
-    } catch (err) {
-      setSentOrders([]);
+      setLoading(true);
+      await requestDriver(orderId.toString());
+      alert("Driver requested successfully! The system is finding a match.");
+      await loadDashboardData(); 
+    } catch (error) {
+      console.error("Failed to request driver", error);
+      alert("Failed to request driver. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleCreateOrder = async () => {
+  // --- DELETE FUNCTION ---
+  const handleDeleteOrder = async (orderId: number) => {
+    if (!confirm("Are you sure you want to delete this package? This action cannot be undone.")) return;
+
     try {
-      const orderData = {
-        vehicleTypeNeeded: newOrder.vehicleTypeNeeded,
-        addressSource: newOrder.pickupAddress,
-        addressDestination: selectedReceiver?.address || newOrder.addressDestination,
-        weight: parseFloat(newOrder.weight),
-        price: parseFloat(newOrder.price) || 0,
-        description: newOrder.description,
-        deliveryInstructions: newOrder.deliveryInstructions,
-      };
-
-      const createdOrder = await createOrder(orderData);
-      setSentOrders([createdOrder, ...sentOrders]);
-      setAllOrders([createdOrder, ...allOrders]);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create order');
+      await deleteOrder(orderId.toString());
+      setMyOrders(prev => prev.filter(o => o.idPackage !== orderId));
+      alert("Package deleted successfully.");
+    } catch (error) {
+      console.error("Delete failed", error);
+      alert("Failed to delete package.");
     }
+  };
 
-    setShowNewOrderForm(false);
-    setSearchQuery('');
-    setSelectedReceiver(null);
-    setNewOrder({
-      description: '',
-      weight: '',
-      pickupAddress: '',
-      vehicleTypeNeeded: 'CAR',
-      deliveryInstructions: '',
-      price: '',
-      addressDestination: '',
+  // --- EDIT FUNCTIONS ---
+  const startEditing = (order: Order) => {
+    setEditingId(order.idPackage);
+    setEditForm({
+      description: order.description || '',
+      weight: order.weight.toString(),
+      price: order.price.toString()
     });
   };
 
-  const handleCancelOrder = async (orderId: string) => {
+  const cancelEditing = () => {
+    setEditingId(null);
+    setEditForm({ description: '', weight: '', price: '' });
+  };
+
+  const saveEdit = async () => {
+    if (!editingId) return;
+
     try {
-      await deleteOrder(orderId);
-      setSentOrders(sentOrders.filter(o => o.idPackage.toString() !== orderId));
-      setAllOrders(allOrders.filter(o => o.idPackage.toString() !== orderId));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to cancel order');
+      await updatePackage(editingId.toString(), {
+        description: editForm.description,
+        weight: parseFloat(editForm.weight),
+        price: parseFloat(editForm.price)
+      });
+
+      setEditingId(null);
+      await loadDashboardData();
+      alert("Order updated successfully!");
+    } catch (error) {
+      console.error("Update failed", error);
+      alert("Failed to update order.");
     }
   };
 
-  const handleRequestDriver = async (orderId: string) => {
+  // --- SEARCH FUNCTIONS ---
+  const handleSearchOrder = async () => {
+    if (!orderIdSearch.trim()) {
+      loadDashboardData();
+      return;
+    }
+    setLoading(true);
     try {
-      const response = await requestDriver(orderId);
-      alert(`${response.message}\nDriver: ${response.delivererName}`);
-      // Refresh orders to show updated status
-      const ordersData = await fetchOrders();
-      setAllOrders(ordersData);
-      setSentOrders(ordersData.filter(o => o.idClientSource === parseInt(user.id)));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to request driver');
+      const order = await fetchOrderById(orderIdSearch);
+      setMyOrders(order ? [order] : []);
+    } catch (error) {
+      console.error("Search failed:", error);
+      setMyOrders([]);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleRateDeliverer = async (delivererId: number, rating: number, comment: string) => {
+  const clearSearch = () => {
+    setOrderIdSearch('');
+    loadDashboardData();
+  };
+
+  const handleSearchRecipient = async () => {
+    if (!searchQuery.trim()) return;
+    setIsSearching(true);
     try {
-      await submitRating({ idDeliverer: delivererId, rating, comment });
-      setRatingOrderId(null);
-      // Could add a success toast here
+      const results = await searchClients(searchQuery);
+      setSearchResults(results.filter((c: any) => c.id !== user.id));
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to submit rating');
+      console.error("Search failed", err);
+    } finally {
+      setIsSearching(false);
     }
   };
 
-  const handleAcceptDelivery = async (orderId: string) => {
-    try {
-      const updatedOrder = await updateOrderStatus(orderId, 'DELIVERED');
-      setReceivedOrders(receivedOrders.map(o => o.idPackage.toString() === orderId ? updatedOrder : o));
-      setAllOrders(allOrders.map(o => o.idPackage.toString() === orderId ? updatedOrder : o));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to accept delivery');
-    }
+  const selectRecipient = (client: any) => {
+    setNewOrder(prev => ({
+      ...prev,
+      recipientId: client.id,
+      recipientName: `${client.firstName} ${client.lastName}`
+    }));
+    setSearchResults([]);
+    setSearchQuery('');
   };
 
-  const handleRejectDelivery = async (orderId: string) => {
+  const handleCreateOrder = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newOrder.recipientId) {
+      alert("Please search and select a recipient first.");
+      return;
+    }
+
     try {
-      // Note: CANCELLED is used for rejected deliveries in the new status system
-      const updatedOrder = await updateOrderStatus(orderId, 'CANCELLED');
-      setReceivedOrders(receivedOrders.map(o => o.idPackage.toString() === orderId ? updatedOrder : o));
-      setAllOrders(allOrders.map(o => o.idPackage.toString() === orderId ? updatedOrder : o));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to reject delivery');
+      const payload: CreatePackagePayload = {
+        vehicleTypeNeeded: newOrder.vehicleType,
+        addressSource: newOrder.pickupAddress,
+        addressDestination: newOrder.deliveryAddress,
+        description: newOrder.description,
+        weight: parseFloat(newOrder.weight),
+        price: parseFloat(newOrder.price),
+        idClientDestination: newOrder.recipientId
+      };
+
+      await createOrder(payload);
+      
+      setNewOrder({
+        recipientId: null,
+        recipientName: '',
+        pickupAddress: '',
+        deliveryAddress: '',
+        description: '',
+        weight: '',
+        price: '',
+        vehicleType: 'BIKE'
+      });
+      
+      loadDashboardData();
+      alert("Package created successfully!");
+    } catch (error) {
+      console.error("Failed to create order:", error);
+      alert("Failed to create order. Check console for details.");
     }
   };
 
   const handleMarkAsRead = async (id: number) => {
     try {
       await markNotificationAsRead(id);
-      setNotifications(notifications.map(n => n.id === id ? { ...n, isRead: true } : n));
-    } catch (err) {
-      console.error("Failed to mark notification as read", err);
+      setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
+    } catch (e) {
+      console.error(e);
     }
   };
 
   return (
-    <>
-      {/* Header */}
-      <header className="bg-white border-b border-neutral-200 sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-neutral-900">Delivery ERP - Client</h1>
-              <p className="text-neutral-500 text-sm">Welcome, {user.name}</p>
-            </div>
-            <Button variant="outline" onClick={onLogout}>
-              <LogOut className="size-4 mr-2" />
-              Logout
-            </Button>
+    <div className="min-h-screen bg-neutral-50 pb-20">
+      <header className="bg-white border-b sticky top-0 z-30 px-6 py-4 flex items-center justify-between shadow-sm">
+        <div className="flex items-center gap-2">
+          <div className="bg-primary/10 p-2 rounded-lg">
+            <Package className="h-6 w-6 text-primary" />
           </div>
+          <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/60">
+            Client Dashboard
+          </h1>
+        </div>
+        <div className="flex items-center gap-4">
+          <div className="text-right hidden sm:block">
+            <p className="text-sm font-medium">{user.name || 'Client'}</p>
+            <p className="text-xs text-muted-foreground">{user.email}</p>
+          </div>
+          <Button variant="ghost" size="icon" onClick={onLogout} className="text-muted-foreground hover:text-destructive">
+            <LogOut className="h-5 w-5" />
+          </Button>
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
-        {error && (
-          <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-yellow-900">
-            <p className="text-sm">⚠️ {error} (Using fallback data)</p>
-          </div>
-        )}
-        <Tabs defaultValue="send" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="send">
-              <Send className="size-4 mr-2" />
-              Send Packages
-            </TabsTrigger>
-            <TabsTrigger value="receive">
-              <Inbox className="size-4 mr-2" />
-              Receive Packages
-            </TabsTrigger>
-            <TabsTrigger value="notifications" className="relative">
-              <Bell className="size-4 mr-2" />
-              Notifications
-              {notifications.filter(n => !n.isRead).length > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full size-4 flex items-center justify-center">
-                  {notifications.filter(n => !n.isRead).length}
-                </span>
-              )}
-            </TabsTrigger>
+      <main className="max-w-5xl mx-auto p-6 space-y-6">
+        <Tabs defaultValue="new-package" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-2 max-w-[400px]">
+            <TabsTrigger value="new-package">New Package</TabsTrigger>
+            <TabsTrigger value="my-packages">My Packages</TabsTrigger>
           </TabsList>
 
-          {/* SEND TAB */}
-          <TabsContent value="send" className="space-y-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-neutral-900 mb-2">Send Packages</h2>
-                <p className="text-neutral-500">Create and track your shipments</p>
-              </div>
-              <Button onClick={() => setShowNewOrderForm(!showNewOrderForm)}>
-                <Plus className="size-4 mr-2" />
-                New Shipment
-              </Button>
-            </div>
-
-            {/* New Order Form */}
-            {showNewOrderForm && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Create New Shipment</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
+          <TabsContent value="new-package">
+            <Card>
+              <CardHeader>
+                <CardTitle>Send a New Package</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleCreateOrder} className="space-y-6">
+                  {/* ... (Create Package Form - Unchanged) ... */}
                   <div className="space-y-2">
-                    <Label htmlFor="recepteurSearch">Search Receiver by Name or Email</Label>
-                    <div className="relative">
-                      <Search className="absolute left-3 top-3 size-4 text-neutral-400" />
-                      <Input
-                        id="recepteurSearch"
-                        placeholder="Type to search for a user..."
+                    <Label>Recipient</Label>
+                    <div className="flex gap-2">
+                      <Input 
+                        placeholder="Search by name..." 
                         value={searchQuery}
-                        onChange={(e) => handleSearchUsers(e.target.value)}
-                        className="pl-9"
+                        onChange={(e) => setSearchQuery(e.target.value)}
                       />
+                      <Button type="button" onClick={handleSearchRecipient} disabled={isSearching}>
+                        <Search className="h-4 w-4" />
+                      </Button>
                     </div>
+                    
                     {searchResults.length > 0 && (
-                      <div className="border border-neutral-200 rounded-lg mt-2 max-h-48 overflow-y-auto">
-                        {searchResults.map((receiver: any) => (
-                          <button
-                            key={receiver.id}
-                            onClick={() => handleSelectReceiver(receiver)}
-                            className="w-full text-left px-4 py-3 hover:bg-neutral-50 border-b border-neutral-100 last:border-b-0"
+                      <div className="border rounded-md mt-2 bg-white shadow-sm divide-y">
+                        {searchResults.map(client => (
+                          <div 
+                            key={client.id} 
+                            className="p-3 hover:bg-neutral-50 cursor-pointer flex justify-between items-center"
+                            onClick={() => selectRecipient(client)}
                           >
-                            <p className="text-neutral-900">{receiver.name || `${receiver.firstName} ${receiver.lastName}`}</p>
-                            <p className="text-sm text-neutral-500">{receiver.email}</p>
-                            <p className="text-xs text-neutral-400">{receiver.address}</p>
-                          </button>
+                            <div className="flex items-center gap-3">
+                              <div className="bg-neutral-100 p-2 rounded-full">
+                                <UserIcon className="h-4 w-4 text-neutral-500" />
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium">{client.firstName} {client.lastName}</p>
+                                <p className="text-xs text-neutral-500">{client.email}</p>
+                              </div>
+                            </div>
+                            <Button size="sm" variant="ghost">Select</Button>
+                          </div>
                         ))}
                       </div>
                     )}
-                    {selectedReceiver && (
-                      <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="text-sm text-green-900">Selected Receiver:</p>
-                            <p className="text-green-900">{selectedReceiver.name || `${(selectedReceiver as any).firstName} ${(selectedReceiver as any).lastName}`}</p>
-                            <p className="text-sm text-green-700">{selectedReceiver.address}</p>
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              setSelectedReceiver(null);
-                              setSearchQuery('');
-                            }}
-                          >
-                            <X className="size-4" />
-                          </Button>
-                        </div>
+
+                    {newOrder.recipientName && (
+                      <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 p-3 rounded-md border border-green-100">
+                        <Truck className="h-4 w-4" />
+                        Selected: <span className="font-medium">{newOrder.recipientName}</span>
                       </div>
                     )}
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="description">Package Description</Label>
-                    <Textarea
-                      id="description"
-                      placeholder="Describe the package contents"
-                      value={newOrder.description}
-                      onChange={(e) => setNewOrder({ ...newOrder, description: e.target.value })}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="weight">Weight (kg)</Label>
-                    <Input
-                      id="weight"
-                      type="number"
-                      step="0.1"
-                      placeholder="Enter weight"
-                      value={newOrder.weight}
-                      onChange={(e) => setNewOrder({ ...newOrder, weight: e.target.value })}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="price">Price</Label>
-                    <Input
-                      id="price"
-                      type="number"
-                      placeholder="Enter price"
-                      value={newOrder.price}
-                      onChange={(e) => setNewOrder({ ...newOrder, price: e.target.value })}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="deliveryInstructions">Delivery Instructions</Label>
-                    <Textarea
-                      id="deliveryInstructions"
-                      placeholder="Enter delivery instructions"
-                      value={newOrder.deliveryInstructions}
-                      onChange={(e) => setNewOrder({ ...newOrder, deliveryInstructions: e.target.value })}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="pickupAddress">Pickup Address</Label>
-                    <Input
-                      id="pickupAddress"
-                      placeholder="Enter pickup address"
-                      value={newOrder.pickupAddress}
-                      onChange={(e) => setNewOrder({ ...newOrder, pickupAddress: e.target.value })}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="addressDestination">Destination Address</Label>
-                    <Input
-                      id="addressDestination"
-                      placeholder="Enter destination address (if no receiver selected)"
-                      value={newOrder.addressDestination}
-                      onChange={(e) => setNewOrder({ ...newOrder, addressDestination: e.target.value })}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="vehicleTypeNeeded">Vehicle Type Needed</Label>
-                    <select
-                      id="vehicleTypeNeeded"
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                      value={newOrder.vehicleTypeNeeded}
-                      onChange={(e) => setNewOrder({ ...newOrder, vehicleTypeNeeded: e.target.value })}
-                    >
-                      <option value="BIKE">BIKE</option>
-                      <option value="CAR">CAR</option>
-                      <option value="TRUCK">TRUCK</option>
-                      <option value="VAN">VAN</option>
-                    </select>
-                  </div>
-
-                  <div className="flex gap-2">
-                    <Button 
-                      onClick={handleCreateOrder} 
-                      className="flex-1"
-                      disabled={!newOrder.description || !newOrder.weight}
-                    >
-                      Create Shipment
-                    </Button>
-                    <Button variant="outline" onClick={() => {
-                      setShowNewOrderForm(false);
-                      setSelectedReceiver(null);
-                      setSearchQuery('');
-                    }}>
-                      Cancel
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* My Shipments */}
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle>My Shipments</CardTitle>
-                <div className="flex items-center space-x-2">
-                  <Input
-                    placeholder="Order ID"
-                    className="h-8 w-[150px]"
-                    value={orderSearchId}
-                    onChange={(e) => setOrderSearchId(e.target.value)}
-                  />
-                  <Button size="sm" variant="ghost" onClick={handleSearchOrder}>
-                    <Search className="size-4" />
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {sentOrders.length === 0 ? (
-                    <div className="text-center py-8 text-neutral-500">
-                      <Package className="size-12 mx-auto mb-3 opacity-30" />
-                      <p>No shipments yet</p>
-                      <p className="text-sm">Create your first shipment to get started</p>
-                    </div>
-                  ) : (
-                    sentOrders.map(order => (
-                      <div
-                        key={order.idPackage}
-                        className="border border-neutral-200 rounded-lg p-4 hover:border-neutral-300 transition-colors"
-                      >
-                        <div className="flex items-start justify-between mb-3">
-                          <div>
-                            <p className="text-neutral-900">Order #{order.idPackage}</p>
-                            <p className="text-sm text-neutral-500">{order.description || 'No description'}</p>
-                          </div>
-                          <StatusBadge status={order.status} />
-                        </div>
-                        
-                        <div className="space-y-2 text-sm mb-3">
-                          <div className="flex items-start gap-2">
-                            <MapPin className="size-4 mt-0.5 text-neutral-400 flex-shrink-0" />
-                            <div>
-                              <p className="text-neutral-500">To: Client #{order.idClientDestination || 'N/A'}</p>
-                              <p className="text-neutral-900">{order.addressDestination}</p>
-                            </div>
-                          </div>
-                          <div>
-                            <p className="text-neutral-500">Weight / Price</p>
-                            <p className="text-neutral-900">{order.weight} kg / ${order.price}</p>
-                          </div>
-                          <div>
-                            <p className="text-neutral-500">Created</p>
-                            <p className="text-neutral-900">{new Date(order.createdAt).toLocaleString()}</p>
-                          </div>
-                        </div>
-
-                        {order.status === 'CREATED' && (
-                          <div className="space-y-3">
-                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm">
-                              <p className="text-blue-900">Order created</p>
-                            </div>
-                            <div className="flex gap-2">
-                              <Button
-                                size="sm"
-                                onClick={() => handleRequestDriver(order.idPackage.toString())}
-                                className="flex-1"
-                              >
-                                <Truck className="size-4 mr-2" />
-                                Request Driver
-                              </Button>
-                              <Button
-                                variant="destructive"
-                                size="sm"
-                                onClick={() => handleCancelOrder(order.idPackage.toString())}
-                              >
-                                <X className="size-4 mr-2" />
-                                Cancel
-                              </Button>
-                            </div>
-                          </div>
-                        )}
-
-                        {order.status === 'DELIVERED' && (
-                          <div className="mt-3 pt-3 border-t border-neutral-100">
-                            {ratingOrderId === order.idPackage.toString() ? (
-                              <div className="bg-neutral-50 p-3 rounded-lg space-y-3 border border-neutral-200">
-                                <p className="font-medium text-sm">Rate Delivery</p>
-                                <div className="flex items-center gap-1">
-                                  {[1, 2, 3, 4, 5].map((star) => (
-                                    <button
-                                      key={star}
-                                      onClick={() => setRatingValue(star)}
-                                      className={`p-1 hover:scale-110 transition-transform ${star <= ratingValue ? 'text-yellow-400' : 'text-gray-300'}`}
-                                      type="button"
-                                    >
-                                      <Star className="size-5 fill-current" />
-                                    </button>
-                                  ))}
-                                </div>
-                                <Textarea 
-                                  placeholder="Add a comment..." 
-                                  value={ratingComment}
-                                  onChange={(e) => setRatingComment(e.target.value)}
-                                  className="text-sm"
-                                />
-                                <div className="flex gap-2">
-                                  <Button size="sm" onClick={() => {
-                                    // Cast to any to access idDeliverer if it's not in the Order type definition yet
-                                    const delivererId = (order as any).idDeliverer;
-                                    if (delivererId) {
-                                      handleRateDeliverer(delivererId, ratingValue, ratingComment);
-                                    } else {
-                                      setError("Cannot rate: Deliverer information missing");
-                                    }
-                                  }}>Submit</Button>
-                                  <Button size="sm" variant="ghost" onClick={() => setRatingOrderId(null)}>Cancel</Button>
-                                </div>
-                              </div>
-                            ) : (
-                              <Button variant="outline" size="sm" onClick={() => {
-                                setRatingOrderId(order.idPackage.toString());
-                                setRatingValue(5);
-                                setRatingComment('');
-                              }}>
-                                <Star className="size-4 mr-2" />
-                                Rate Deliverer
-                              </Button>
-                            )}
-                          </div>
-                        )}
-
-                        {['ASSIGNED', 'IN_TRANSIT'].includes(order.status) && (
-                          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm">
-                            <p className="text-amber-900">Delivery in progress - Cannot cancel</p>
-                          </div>
-                        )}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label>Pickup Address (Source)</Label>
+                      <div className="relative">
+                        <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                        <Input 
+                          className="pl-9" 
+                          placeholder="Where to pick up?" 
+                          value={newOrder.pickupAddress}
+                          onChange={e => setNewOrder({...newOrder, pickupAddress: e.target.value})}
+                          required
+                        />
                       </div>
-                    ))
-                  )}
-                </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Delivery Address (Destination)</Label>
+                      <div className="relative">
+                        <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                        <Input 
+                          className="pl-9" 
+                          placeholder="Where to deliver?" 
+                          value={newOrder.deliveryAddress}
+                          onChange={e => setNewOrder({...newOrder, deliveryAddress: e.target.value})}
+                          required
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Package Description</Label>
+                    <Textarea 
+                      placeholder="What's in the package?" 
+                      value={newOrder.description}
+                      onChange={e => setNewOrder({...newOrder, description: e.target.value})}
+                      required
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-6">
+                    <div className="space-y-2">
+                      <Label>Weight (kg)</Label>
+                      <Input 
+                        type="number" 
+                        step="0.1" 
+                        value={newOrder.weight}
+                        onChange={e => setNewOrder({...newOrder, weight: e.target.value})}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Price (DA)</Label>
+                      <Input 
+                        type="number" 
+                        value={newOrder.price}
+                        onChange={e => setNewOrder({...newOrder, price: e.target.value})}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Vehicle Needed</Label>
+                      <Select 
+                        value={newOrder.vehicleType} 
+                        onValueChange={(val: any) => setNewOrder({...newOrder, vehicleType: val})}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="BIKE">Bike</SelectItem>
+                          <SelectItem value="CAR">Car</SelectItem>
+                          <SelectItem value="TRUCK">Truck</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <Button type="submit" className="w-full h-11 text-base">
+                    <Plus className="mr-2 h-5 w-5" /> Create Package Request
+                  </Button>
+                </form>
               </CardContent>
             </Card>
           </TabsContent>
 
-          {/* RECEIVE TAB */}
-          <TabsContent value="receive" className="space-y-6">
-            <div>
-              <h2 className="text-neutral-900 mb-2">Receive Packages</h2>
-              <p className="text-neutral-500">Manage your incoming deliveries</p>
-            </div>
-
-            {/* Incoming Packages */}
+          <TabsContent value="my-packages">
             <Card>
               <CardHeader>
-                <CardTitle>Incoming Packages</CardTitle>
+                <CardTitle>My Packages</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {receivedOrders.filter(o => !['DELIVERED', 'CANCELLED'].includes(o.status)).length === 0 ? (
-                    <div className="text-center py-8 text-neutral-500">
-                      <Package className="size-12 mx-auto mb-3 opacity-30" />
-                      <p>No incoming packages</p>
-                    </div>
-                  ) : (
-                    receivedOrders
-                      .filter(o => !['DELIVERED', 'CANCELLED'].includes(o.status))
-                      .map(order => (
-                        <div
-                          key={order.idPackage}
-                          className="border border-neutral-200 rounded-lg p-4 hover:border-neutral-300 transition-colors"
-                        >
-                          <div className="flex items-start justify-between mb-3">
-                            <div>
-                              <p className="text-neutral-900">Order #{order.idPackage}</p>
-                              <p className="text-sm text-neutral-500">{order.description || 'No description'}</p>
-                            </div>
-                            <StatusBadge status={order.status} />
-                          </div>
-                          
-                          <div className="space-y-2 text-sm mb-3">
-                            <div>
-                              <p className="text-neutral-500">From</p>
-                              <p className="text-neutral-900">Client #{order.idClientSource}</p>
-                              <p className="text-neutral-600">{order.addressSource}</p>
-                            </div>
-                            <div className="flex items-start gap-2">
-                              <MapPin className="size-4 mt-0.5 text-neutral-400 flex-shrink-0" />
-                              <div>
-                                <p className="text-neutral-500">Delivery to</p>
-                                <p className="text-neutral-900">{order.addressDestination}</p>
-                              </div>
-                            </div>
-                            <div>
-                              <p className="text-neutral-500">Weight / Price</p>
-                              <p className="text-neutral-900">{order.weight} kg / ${order.price}</p>
-                            </div>
-                          </div>
-
-                          {order.status === 'IN_TRANSIT' && (
-                            <div className="flex gap-2">
-                              <Button
-                                size="sm"
-                                onClick={() => handleAcceptDelivery(order.idPackage.toString())}
-                                className="flex-1"
-                              >
-                                <CheckCircle className="size-4 mr-2" />
-                                Accept Delivery
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleRejectDelivery(order.idPackage.toString())}
-                              >
-                                <X className="size-4 mr-2" />
-                                Reject
-                              </Button>
-                            </div>
-                          )}
-
-                          {['CREATED', 'ASSIGNED'].includes(order.status) && (
-                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm">
-                              <p className="text-blue-900">Package is on its way</p>
-                            </div>
-                          )}
-                        </div>
-                      ))
+                {/* Search Bar */}
+                <div className="flex gap-2 mb-6">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search by Order ID..."
+                      value={orderIdSearch}
+                      onChange={(e) => setOrderIdSearch(e.target.value)}
+                      className="pl-8"
+                      onKeyDown={(e) => e.key === 'Enter' && handleSearchOrder()}
+                    />
+                  </div>
+                  <Button onClick={handleSearchOrder}>Search</Button>
+                  {orderIdSearch && (
+                    <Button variant="outline" size="icon" onClick={clearSearch} title="Clear Search">
+                      <X className="h-4 w-4" />
+                    </Button>
                   )}
                 </div>
-              </CardContent>
-            </Card>
 
-            {/* Delivery History */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Delivery History</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {receivedOrders.filter(o => ['DELIVERED', 'CANCELLED'].includes(o.status)).length === 0 ? (
-                    <div className="text-center py-8 text-neutral-500">
-                      <p>No delivery history</p>
-                    </div>
-                  ) : (
-                    receivedOrders
-                      .filter(o => ['DELIVERED', 'CANCELLED'].includes(o.status))
-                      .map(order => (
-                        <div
-                          key={order.idPackage}
-                          className="border border-neutral-200 rounded-lg p-4"
-                        >
-                          <div className="flex items-start justify-between mb-3">
-                            <div>
-                              <p className="text-neutral-900">Order #{order.idPackage}</p>
-                              <p className="text-sm text-neutral-500">{order.description || 'No description'}</p>
-                            </div>
-                            <StatusBadge status={order.status} />
-                          </div>
-                          
-                          <div className="grid grid-cols-2 gap-3 text-sm">
-                            <div>
-                              <p className="text-neutral-500">From</p>
-                              <p className="text-neutral-900">Client #{order.idClientSource}</p>
-                            </div>
-                            <div>
-                              <p className="text-neutral-500">Completed</p>
-                              <p className="text-neutral-900">{new Date(order.createdAt).toLocaleDateString()}</p>
-                            </div>
-                          </div>
-                        </div>
-                      ))
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* NOTIFICATIONS TAB */}
-          <TabsContent value="notifications" className="space-y-6">
-            <div>
-              <h2 className="text-neutral-900 mb-2">Notifications</h2>
-              <p className="text-neutral-500">Updates about your shipments</p>
-            </div>
-
-            <Card>
-              <CardContent className="p-0">
-                {notifications.length === 0 ? (
-                  <div className="text-center py-12 text-neutral-500">
-                    <Bell className="size-12 mx-auto mb-3 opacity-30" />
-                    <p>No notifications</p>
+                {loading ? (
+                  <p className="text-center py-8">Loading...</p>
+                ) : myOrders.length === 0 ? (
+                  <div className="text-center py-12 text-muted-foreground">
+                    <Package className="h-12 w-12 mx-auto mb-4 opacity-20" />
+                    <p>No packages found.</p>
                   </div>
                 ) : (
-                  <div className="divide-y divide-neutral-100">
-                    {notifications.map(notification => (
-                      <div 
-                        key={notification.id} 
-                        className={`p-4 flex items-start justify-between hover:bg-neutral-50 transition-colors ${!notification.isRead ? 'bg-blue-50/50' : ''}`}
-                      >
-                        <div className="space-y-1">
-                          <p className={`text-sm ${!notification.isRead ? 'font-semibold text-neutral-900' : 'text-neutral-700'}`}>
-                            {notification.message}
-                          </p>
-                          <p className="text-xs text-neutral-500">{notification.dateNotif}</p>
+                  <div className="space-y-4">
+                    {myOrders.map((order) => {
+                      const delivererId = (order as any).idDeliverer || (order as any).idLivreur || (order as any).delivererId;
+                      const isRateable = ['DELIVERED', 'COMPLETED'].includes(order.status?.toUpperCase() || '');
+
+                      return (
+                        /* KEY 1: Main Order Card */
+                        <div key={order.idPackage} className={`p-4 border rounded-lg bg-white transition-colors ${editingId === order.idPackage || ratingId === order.idPackage ? 'border-primary shadow-md ring-1 ring-primary' : 'hover:border-primary/50'}`}>
+                          
+                          {/* --- RATING MODE UI --- */}
+                          {ratingId === order.idPackage ? (
+                            <div className="space-y-4">
+                              <div className="flex justify-between items-center mb-2">
+                                <span className="font-semibold text-lg">Rate Driver for #{order.idPackage}</span>
+                                <StatusBadge status={order.status} />
+                              </div>
+                              
+                              <div className="flex gap-1 justify-center py-2">
+                                {[1, 2, 3, 4, 5].map((star) => (
+                                  /* KEY 2: Star Rating Buttons */
+                                  <button
+                                    key={`star-${order.idPackage}-${star}`}
+                                    type="button"
+                                    onClick={() => setRatingData(prev => ({ ...prev, rating: star }))}
+                                    className={`p-1 transition-colors ${ratingData.rating >= star ? 'text-yellow-500' : 'text-neutral-300'}`}
+                                  >
+                                    <Star className="h-8 w-8 fill-current" />
+                                  </button>
+                                ))}
+                              </div>
+
+                              <div className="grid gap-2">
+                                <Label>Comment (Optional)</Label>
+                                <Textarea 
+                                  placeholder="How was the delivery?"
+                                  value={ratingData.comment}
+                                  onChange={e => setRatingData({...ratingData, comment: e.target.value})}
+                                />
+                              </div>
+
+                              <div className="flex justify-end gap-2 pt-2">
+                                <Button variant="outline" size="sm" onClick={cancelRating}>
+                                  <X className="h-4 w-4 mr-1" /> Cancel
+                                </Button>
+                                <Button size="sm" onClick={() => handleRateDriver(delivererId)}>
+                                  Submit Rating
+                                </Button>
+                              </div>
+                            </div>
+                          ) : editingId === order.idPackage ? (
+                            /* --- EDIT MODE UI --- */
+                            <div className="space-y-4">
+                              <div className="flex justify-between items-center mb-2">
+                                <span className="font-semibold text-lg">Editing #{order.idPackage}</span>
+                                <StatusBadge status={order.status} />
+                              </div>
+                              
+                              <div className="grid gap-4">
+                                <div className="grid gap-2">
+                                  <Label>Description</Label>
+                                  <Input 
+                                    value={editForm.description} 
+                                    onChange={e => setEditForm({...editForm, description: e.target.value})}
+                                  />
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                  <div className="grid gap-2">
+                                    <Label>Price (DA)</Label>
+                                    <Input 
+                                      type="number"
+                                      value={editForm.price} 
+                                      onChange={e => setEditForm({...editForm, price: e.target.value})}
+                                    />
+                                  </div>
+                                  <div className="grid gap-2">
+                                    <Label>Weight (kg)</Label>
+                                    <Input 
+                                      type="number"
+                                      value={editForm.weight} 
+                                      onChange={e => setEditForm({...editForm, weight: e.target.value})}
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="flex justify-end gap-2 pt-2">
+                                <Button variant="outline" size="sm" onClick={cancelEditing}>
+                                  <X className="h-4 w-4 mr-1" /> Cancel
+                                </Button>
+                                <Button size="sm" onClick={saveEdit}>
+                                  <Save className="h-4 w-4 mr-1" /> Save Changes
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            /* --- NORMAL VIEW UI --- */
+                            <div className="flex items-center justify-between">
+                              <div className="space-y-1">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-semibold text-lg">#{order.idPackage}</span>
+                                  <StatusBadge status={order.status} />
+                                </div>
+                                <p className="text-sm text-muted-foreground">{order.description}</p>
+                                <div className="flex items-center gap-4 text-xs text-muted-foreground mt-2">
+                                  <span className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {order.addressDestination}</span>
+                                  <span className="flex items-center gap-1"><Truck className="h-3 w-3" /> {order.vehicleTypeNeeded}</span>
+                                </div>
+                              </div>
+                              <div className="text-right flex flex-col items-end gap-2">
+                                <div>
+                                  <p className="font-bold text-lg">{order.price} DA</p>
+                                  <p className="text-xs text-muted-foreground">{new Date(order.createdAt).toLocaleDateString()}</p>
+                                </div>
+                                
+                                <div className="flex gap-2 flex-wrap justify-end">
+                                  {order.status === 'CREATED' && (
+                                    <Button 
+                                      size="sm" 
+                                      onClick={() => handleRequestDriver(order.idPackage)}
+                                      className="bg-blue-600 hover:bg-blue-700 text-white"
+                                    >
+                                      <UserPlus className="h-4 w-4 mr-1" /> Request Driver
+                                    </Button>
+                                  )}
+
+                                  {isRateable && delivererId && (
+                                    <Button 
+                                      size="sm" 
+                                      variant="outline"
+                                      onClick={() => openRating(order.idPackage)}
+                                      className="text-yellow-600 border-yellow-600 hover:bg-yellow-50"
+                                    >
+                                      <Star className="h-4 w-4 mr-1" /> Rate Driver
+                                    </Button>
+                                  )}
+
+                                  {order.status !== 'DELIVERED' && order.status !== 'CANCELLED' && (
+                                    <>
+                                      <Button variant="ghost" size="sm" onClick={() => startEditing(order)}>
+                                        <Pencil className="h-4 w-4 mr-1" /> Edit
+                                      </Button>
+                                      <Button variant="ghost" size="sm" onClick={() => handleDeleteOrder(order.idPackage)} className="text-red-500 hover:text-red-700 hover:bg-red-50">
+                                        <Trash2 className="h-4 w-4 mr-1" /> Delete
+                                      </Button>
+                                    </>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          )}
                         </div>
-                        {!notification.isRead && (
-                          <Button size="sm" variant="ghost" onClick={() => handleMarkAsRead(notification.id)}>
-                            Mark as read
+                      );
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+            
+            <Card className="mt-6">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Bell className="h-5 w-5" /> Notifications
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {notifications.length === 0 ? (
+                  <p className="text-muted-foreground text-sm">No new notifications.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {notifications.map(n => (
+                      /* KEY 3: Notifications List */
+                      <div key={n.id} className={`p-3 rounded border text-sm flex justify-between ${n.isRead ? 'bg-white' : 'bg-blue-50 border-blue-100'}`}>
+                        <span>{n.message}</span>
+                        {!n.isRead && (
+                          <Button variant="ghost" size="sm" className="h-auto p-0 text-blue-600" onClick={() => handleMarkAsRead(n.id)}>
+                            Mark read
                           </Button>
                         )}
                       </div>
@@ -755,6 +680,6 @@ export function ClientDashboard({ user, onLogout }: ClientDashboardProps) {
           </TabsContent>
         </Tabs>
       </main>
-    </>
+    </div>
   );
 }

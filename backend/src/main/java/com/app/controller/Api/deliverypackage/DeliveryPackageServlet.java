@@ -8,6 +8,7 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.List;
 import com.google.gson.Gson;
+import com.app.dao.Implementation.AffectationDAO;
 import com.app.dao.Implementation.DeliveryPackageDAO;
 import com.app.model.DeliveryPackage;
 import com.app.model.Enums.PackageStatus;
@@ -17,7 +18,7 @@ public class DeliveryPackageServlet extends HttpServlet {
 
     private DeliveryPackageDAO packageDAO = new DeliveryPackageDAO();
     private Gson gson = new Gson();
-
+    private AffectationDAO affectationDAO = new AffectationDAO();
     /**
      * GET /api/packages - Get all packages
      * GET /api/packages/{id} - Get package by ID
@@ -77,7 +78,7 @@ public class DeliveryPackageServlet extends HttpServlet {
                 if (splits.length > 1) {
                     int id = Integer.parseInt(splits[1]);
                     DeliveryPackage pkg = packageDAO.findById(id);
-                    if(!role.equals("ADMIN") && !packageDAO.ownsPackage(userId , id)){
+                    if(!role.equals("ADMIN") && !packageDAO.ownsPackage(userId , id) && !affectationDAO.driverHasPackage(userId , id)){
                         resp.setStatus(HttpServletResponse.SC_FORBIDDEN);
                         out.print("{\"error\": \"You can only access your own packages.\"}");
                         return;
