@@ -1,5 +1,6 @@
 A:\dev\projects\mini_erp_project\mini_erp_project\backend\src\main\java\com\app\controller\Api\client\RateServlet.java
 A:\dev\projects\mini_erp_project\mini_erp_project\backend\src\main\java\com\app\dao\Interface\DAO.java
+A:\dev\projects\mini_erp_project\mini_erp_project\backend\src\main\java\com\app\controller\Api\NotificationServlet.java
 A:\dev\projects\mini_erp_project\mini_erp_project\backend\src\main\java\com\app\model\Enums\VehicleType.java
 A:\dev\projects\mini_erp_project\mini_erp_project\backend\src\main\java\com\app\model\Notification.java
 A:\dev\projects\mini_erp_project\mini_erp_project\backend\src\main\java\com\app\service\RateService.java
@@ -15,6 +16,7 @@ A:\dev\projects\mini_erp_project\mini_erp_project\backend\src\main\java\com\app\
 A:\dev\projects\mini_erp_project\mini_erp_project\backend\src\main\java\com\app\controller\Test\TestingApi.java
 A:\dev\projects\mini_erp_project\mini_erp_project\backend\src\main\java\com\app\filter\JwtFilter.java
 A:\dev\projects\mini_erp_project\mini_erp_project\backend\src\main\java\com\app\dao\Implementation\RateDAO.java
+A:\dev\projects\mini_erp_project\mini_erp_project\backend\src\main\java\com\app\service\SearchService.java
 A:\dev\projects\mini_erp_project\mini_erp_project\backend\src\main\java\com\app\util\JWTUtil.java
 A:\dev\projects\mini_erp_project\mini_erp_project\backend\src\main\java\com\app\model\Client.java
 A:\dev\projects\mini_erp_project\mini_erp_project\backend\src\main\java\com\app\service\NotificationService.java
@@ -34,6 +36,7 @@ A:\dev\projects\mini_erp_project\mini_erp_project\backend\src\main\java\com\app\
 A:\dev\projects\mini_erp_project\mini_erp_project\backend\src\main\java\com\app\controller\Api\admin\AdminServlet.java
 A:\dev\projects\mini_erp_project\mini_erp_project\backend\src\main\java\com\app\model\Enums\NotificationType.java
 A:\dev\projects\mini_erp_project\mini_erp_project\backend\src\main\java\com\app\util\PasswordUtils.java
+A:\dev\projects\mini_erp_project\mini_erp_project\backend\src\main\java\com\app\controller\Api\client\SearchServlet.java
 A:\dev\projects\mini_erp_project\mini_erp_project\backend\src\main\java\com\app\controller\Auth\LogoutServlet.java
 A:\dev\projects\mini_erp_project\mini_erp_project\backend\src\main\java\com\app\dao\Implementation\AffectationDAO.java
 A:\dev\projects\mini_erp_project\mini_erp_project\backend\src\main\java\com\app\dao\Implementation\ClientDAO.java

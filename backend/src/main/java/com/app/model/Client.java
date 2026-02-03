@@ -5,19 +5,15 @@ import java.util.List;
 
 public class Client extends User {
 
-    // Basic address info
     private String address;
     private String city;
     private int postalCode;
 
-    // Relationships (packages)
-    private List<Package> sentPackages;
-    private List<Package> receivedPackages;
+    private List<DeliveryPackage> sentPackages;
+    private List<DeliveryPackage> receivedPackages;
 
-    // Default constructor (important for frameworks)
     public Client() {}
 
-    // Full constructor
     public Client(
             int id,
             String email,
@@ -44,7 +40,6 @@ public class Client extends User {
         this.postalCode = postalCode;
     }
 
-    // Getters & Setters
 
     public String getAddress() {
         return address;
@@ -72,23 +67,22 @@ public class Client extends User {
 
     
  
-    public List<Package> getSentPackages() {
+    public List<DeliveryPackage> getSentPackages() {
         return sentPackages;
     }
 
-    public void setSentPackages(List<Package> sentPackages) {
+    public void setSentPackages(List<DeliveryPackage> sentPackages) {
         this.sentPackages = sentPackages;
     }
 
-    public List<Package> getReceivedPackages() {
+    public List<DeliveryPackage> getReceivedPackages() {
         return receivedPackages;
     }
 
-    public void setReceivedPackages(List<Package> receivedPackages) {
+    public void setReceivedPackages(List<DeliveryPackage> receivedPackages) {
         this.receivedPackages = receivedPackages;
     }
 
-    // Override print method
     @Override
     public void print() {
         super.print();
@@ -96,7 +90,8 @@ public class Client extends User {
             "Client [address=" + address +
             ", city=" + city +
             ", postalCode=" + postalCode +
-            
+            ", sentPackages=" + sentPackages +
+            ", receivedPackages=" + receivedPackages +
             "]"
         );
     }

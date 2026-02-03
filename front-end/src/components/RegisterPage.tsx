@@ -24,7 +24,7 @@ export interface RegisterData {
   address?: string; 
   city: string;
   postalcode?: number;
-  vehicletype?: 'BIKE' | 'CAR' | 'TRUCK';
+  vehicletype?: 'BIKE' | 'CAR' | 'TRUCK' | 'VAN';
   maxweight?: number;
   serialnumber?: string;
 }
@@ -62,10 +62,10 @@ export function RegisterPage({ onRegister, onBackToLogin, onVerification, classN
       return;
     }
 
-    if (formData.role === 'DELIVERER' && !formData.address) {
-      setError('Address is required for delivery persons');
-      return;
-    }
+    // if (formData.role === 'DELIVERER' && !formData.address) {
+    //   setError('Address is required for delivery persons');
+    //   return;
+    // }
 
     if (formData.password.length < 6) {
       setError('Password must be at least 6 characters');
@@ -135,7 +135,7 @@ export function RegisterPage({ onRegister, onBackToLogin, onVerification, classN
                   <FieldLabel htmlFor="type">Account Type *</FieldLabel>
                   <Select
                     value={formData.role}
-                    onValueChange={(value) => handleChange('role', value as 'client' | 'livreur')}
+                    onValueChange={(value) => handleChange('role', value as any)}
                   >
                     <SelectTrigger id="type">
                       <SelectValue />
@@ -269,7 +269,7 @@ export function RegisterPage({ onRegister, onBackToLogin, onVerification, classN
                       </FieldLabel>
                       <Select
                         value={formData.vehicletype}
-                        onValueChange={(value) => handleChange('vehicletype', value as 'BIKE' | 'CAR' | 'TRUCK')}
+                        onValueChange={(value) => handleChange('vehicletype', value as any)}
                         >
                         <SelectTrigger id="vehicletype">
                         <SelectValue />
@@ -278,6 +278,7 @@ export function RegisterPage({ onRegister, onBackToLogin, onVerification, classN
                             <SelectItem value="BIKE">BIKE</SelectItem>
                             <SelectItem value="CAR">CAR</SelectItem>
                             <SelectItem value="TRUCK">TRUCK</SelectItem>
+                            <SelectItem value="VAN">VAN</SelectItem>
                           </SelectContent>
                         </Select>
                     </Field>

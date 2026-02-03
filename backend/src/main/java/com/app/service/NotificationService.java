@@ -6,6 +6,7 @@ import com.app.model.Notification;
 import com.app.model.Enums.NotificationType;
 import com.app.util.EmailService;
 import java.sql.Timestamp;
+import java.util.List;
 public class NotificationService {
     private NotificationDAO notificationDAO = new NotificationDAO();
     private UserDAO userDAO = new UserDAO();
@@ -24,20 +25,59 @@ public class NotificationService {
             String sourceClientEmail = userDAO.findById(sourceClientId).getEmail();
             String sourceClientSubject = "Package Assigned to Deliverer";
             String sourceClientMessage = "Your package ID: " + packageId + " has been assigned to a deliverer.";
+            
             EmailService.sendEmail(sourceClientEmail, sourceClientSubject, sourceClientMessage);
             Notification sourceClientNotification = new Notification(packageId, sourceClientId, sourceClientMessage,
                     NotificationType.ASSIGNMENT, new Timestamp(System.currentTimeMillis()));
             notificationDAO.insert(sourceClientNotification);
+            
             Notification clientNotification = new Notification(packageId, destinationClientId, clientMessage,
                     NotificationType.ASSIGNMENT, new Timestamp(System.currentTimeMillis()));
             notificationDAO.insert(clientNotification);
             EmailService.sendEmail(clientEmail, clientSubject, clientMessage);
+            
             Notification delivererNotification = new Notification(packageId, delivererId, delivererMessage,
                     NotificationType.ASSIGNMENT, new Timestamp(System.currentTimeMillis()));
+                    
             notificationDAO.insert(delivererNotification);
             EmailService.sendEmail(delivererEmail, delivererSubject, delivererMessage);
         } catch (Exception e) {
             System.out.println("Failed to send assignment notification: " + e.getMessage());
+        }
+    }
+    public void sendCompletionNotification(int clientId, int packageId) {
+        try {
+            String message = "Your package ID: " + packageId + " has been delivered.";
+            String subject = "Package Delivered";
+            String clientEmail = userDAO.findById(clientId).getEmail();
+
+            Notification notification = new Notification(packageId, clientId, message,
+                    NotificationType.DELIVERY_CONFIRM, new Timestamp(System.currentTimeMillis()));
+            notificationDAO.insert(notification);
+            EmailService.sendEmail(clientEmail, subject, message);
+        } catch (Exception e) {
+            System.out.println("Failed to send completion notification: " + e.getMessage());
+        }
+    }
+    public List<Notification> getNotificationsForUser(int userId) throws Exception {
+        return notificationDAO.findByUserId(userId);
+    }
+    public void markAsRead(int notificationId, int userId) throws Exception {
+        Notification notification = notificationDAO.findById(notificationId);
+        if (notification != null && notification.getIdUserTarget() == userId) {
+            notification.setRead(true);
+            notificationDAO.update(notification);
+        } else {
+            throw new Exception("Notification not found or unauthorized");
+        }
+    }
+    public void markAllAsReadForUser(int userId) throws Exception {
+        List<Notification> notifications = notificationDAO.findByUserId(userId);
+        for (Notification notification : notifications) {
+            if (!notification.isRead()) {
+                notification.setRead(true);
+                notificationDAO.update(notification);
+            }
         }
     }
 }

@@ -49,7 +49,7 @@ export function LoginPage({ onLogin, onShowRegister, className, ...props }: Logi
       const response = await login(email, password);
       onLogin({
         id: String(response.userId),
-        name: response.name || '',
+        name: response.name || email.split('@')[0] || 'User',
         email: email,
         type: response.role === 'ADMIN' ? 'admin' : response.role === 'CLIENT' ? 'client' : 'livreur',
       });

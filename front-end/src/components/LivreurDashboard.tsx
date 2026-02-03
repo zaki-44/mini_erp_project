@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback } from './ui/avatar';
 import { StatusBadge } from './StatusBadge';
 import { MapPin, Package, LogOut, CheckCircle, Truck, User as UserIcon, Search } from 'lucide-react';
 import type { Order, DeliveryHistory } from '../types';
-import { fetchOrders, updateOrderStatus } from '../lib/api';
+import { updateOrderStatus, completeDelivery, fetchAssignments, fetchOrderById } from '../lib/api';
 
 interface AuthUser {
   id: string;
@@ -25,28 +25,16 @@ interface OrderWithDistance extends Order {
   distance: number;
   latitude?: number;
   longitude?: number;
+  affectationId?: string;
 }
 
-// Helper function to calculate distance between two coordinates (in km)
-// TODO: Implement when coordinates are available in Order interface
-function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const R = 6371; // Radius of the Earth in km
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a = 
-    Math.sin(dLat/2) * Math.sin(dLat/2) +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-    Math.sin(dLon/2) * Math.sin(dLon/2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-  return R * c;
-}
 
 export function LivreurDashboard({ user, onLogout }: LivreurDashboardProps) {
   // Mock current location (in a real app, this would be from GPS)
   const [currentLocation] = useState({ lat: 48.8566, lon: 2.3522 });
   
   const [allOrders, setAllOrders] = useState<Order[]>([]);
-  const [assignedDeliveries, setAssignedDeliveries] = useState<Order[]>([]);
+  const [assignedDeliveries, setAssignedDeliveries] = useState<OrderWithDistance[]>([]);
   const [availableOrders, setAvailableOrders] = useState<OrderWithDistance[]>([]);
   const [history, setHistory] = useState<DeliveryHistory[]>([]);
   const [loading, setLoading] = useState(true);
@@ -58,29 +46,33 @@ export function LivreurDashboard({ user, onLogout }: LivreurDashboardProps) {
       setLoading(true);
       setError(null);
       try {
-        const ordersData = await fetchOrders();
-        setAllOrders(ordersData);
-        setHistory([]); // TODO: Implement fetchDeliveryHistory API
-        
         // Filter assigned deliveries - orders with status ASSIGNED or IN_TRANSIT
         // Note: We'll need to check if order is assigned to this deliverer via API
-        const assigned = ordersData.filter(
-          o => ['ASSIGNED', 'IN_TRANSIT'].includes(o.status)
-        );
-        setAssignedDeliveries(assigned);
+        try {
+          const assignments = await fetchAssignments();
+          // Map assignments to Order structure and include affectationId
+          const myDeliveriesPromises = assignments.map(async (a) => {
+            try {
+              const order = await fetchOrderById(a.idPackage.toString());
+              return {
+                ...order,
+                distance: 0, // Default distance for assigned orders
+                affectationId: a.idAffectation.toString(), // Store the assignment ID for completion
+              };
+            } catch (err) {
+              console.error(`Failed to fetch package ${a.idPackage}`, err);
+              return null;
+            }
+          });
+          
+          const myDeliveries = (await Promise.all(myDeliveriesPromises)).filter((item): item is OrderWithDistance => item !== null);
+          setAssignedDeliveries(myDeliveries);
+          setAllOrders(myDeliveries);
+        } catch (e) {
+          console.error("Could not fetch assignments", e);
+        }
         
-        // Calculate available orders with distance - orders with status CREATED
-        // Note: Distance calculation requires coordinates which may not be in Order interface
-        const available = ordersData
-          .filter(o => o.status === 'CREATED')
-          .map(o => ({
-            ...o,
-            distance: 0, // TODO: Calculate distance when coordinates are available
-            latitude: 0,
-            longitude: 0,
-          }))
-          .sort((a, b) => a.distance - b.distance);
-        setAvailableOrders(available);
+        setAvailableOrders([]);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load data');
         setAllOrders([]);
@@ -102,7 +94,7 @@ export function LivreurDashboard({ user, onLogout }: LivreurDashboardProps) {
     try {
       const updatedOrder = await updateOrderStatus(orderId, 'ASSIGNED');
       
-      setAssignedDeliveries([updatedOrder, ...assignedDeliveries]);
+      setAssignedDeliveries([{...updatedOrder, distance: 0}, ...assignedDeliveries]);
       setAvailableOrders(availableOrders.filter(o => o.idPackage.toString() !== orderId));
       setAllOrders(allOrders.map(o => o.idPackage.toString() === orderId ? updatedOrder : o));
     } catch (err) {
@@ -114,7 +106,7 @@ export function LivreurDashboard({ user, onLogout }: LivreurDashboardProps) {
     try {
       const updatedOrder = await updateOrderStatus(orderId, 'IN_TRANSIT');
       setAssignedDeliveries(assignedDeliveries.map(order => 
-        order.idPackage.toString() === orderId ? updatedOrder : order
+        order.idPackage.toString() === orderId ? { ...order, ...updatedOrder } : order
       ));
       setAllOrders(allOrders.map(o => 
         o.idPackage.toString() === orderId ? updatedOrder : o
@@ -124,9 +116,14 @@ export function LivreurDashboard({ user, onLogout }: LivreurDashboardProps) {
     }
   };
 
-  const handleCompleteDelivery = async (orderId: string) => {
+  const handleCompleteDelivery = async (orderId: string, affectationId?: string) => {
+    if (!affectationId) {
+      setError("Missing assignment ID for this order");
+      return;
+    }
+
     try {
-      const updatedOrder = await updateOrderStatus(orderId, 'DELIVERED');
+      await completeDelivery(affectationId);
       
       // TODO: Create delivery history entry via API
       setAssignedDeliveries(assignedDeliveries.filter(o => o.idPackage.toString() !== orderId));
@@ -137,7 +134,7 @@ export function LivreurDashboard({ user, onLogout }: LivreurDashboardProps) {
         completedAt: new Date(),
       }]);
       setAllOrders(allOrders.map(o => 
-        o.idPackage.toString() === orderId ? updatedOrder : o
+        o.idPackage.toString() === orderId ? { ...o, status: 'DELIVERED' } : o
       ));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to complete delivery');
@@ -364,7 +361,7 @@ export function LivreurDashboard({ user, onLogout }: LivreurDashboardProps) {
                           )}
                           {order.status === 'IN_TRANSIT' && (
                             <Button
-                              onClick={() => handleCompleteDelivery(order.idPackage.toString())}
+                              onClick={() => handleCompleteDelivery(order.idPackage.toString(), order.affectationId)}
                               className="flex-1"
                             >
                               <CheckCircle className="size-4 mr-2" />

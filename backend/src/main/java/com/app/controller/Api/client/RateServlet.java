@@ -39,7 +39,6 @@ public class RateServlet extends HttpServlet {
 
         try {
             if (delivererIdParam != null) {
-                // Get Average Rating
                 int delivererId = Integer.parseInt(delivererIdParam);
                 double average = rateService.calculateAverageRating(delivererId);
                 
@@ -49,7 +48,6 @@ public class RateServlet extends HttpServlet {
                 out.print(gson.toJson(json));
 
             } else if (pathInfo != null && pathInfo.length() > 1) {
-                // Get Specific Rate by ID
                 String[] splits = pathInfo.split("/");
                 if (splits.length > 1) {
                     int rateId = Integer.parseInt(splits[1]);

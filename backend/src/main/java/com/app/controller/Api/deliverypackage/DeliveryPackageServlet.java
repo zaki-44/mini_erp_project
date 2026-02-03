@@ -21,7 +21,6 @@ public class DeliveryPackageServlet extends HttpServlet {
     /**
      * GET /api/packages - Get all packages
      * GET /api/packages/{id} - Get package by ID
-     * GET /api/packages?idDeliverer={delivererId} - Get packages assigned to a deliverer 
      * GET /api/packages?idClient={clientId} - Get packages created by a client 
      */
     @Override
@@ -30,42 +29,59 @@ public class DeliveryPackageServlet extends HttpServlet {
         resp.setContentType("application/json");
         resp.setCharacterEncoding("UTF-8");
         PrintWriter out = resp.getWriter();
-
+        Integer userId = (Integer) req.getAttribute("userId");
+        String role = (String) req.getAttribute("userRole");
+        if (userId == null || role == null) {
+            resp.setStatus(HttpServletResponse.SC_FORBIDDEN);
+            out.print("{\"error\": \"Access denied.\"}");
+            return;
+        }
         try {
             String pathInfo = req.getPathInfo();
 
             if (pathInfo == null || pathInfo.equals("/")) {
-                String delivererIdParam = req.getParameter("idDeliverer");
+                
                 String clientIdParam = req.getParameter("idClient");
 
-                if (delivererIdParam != null) {
-                    // Get packages assigned to a deliverer
-                    int delivererId = Integer.parseInt(delivererIdParam);
-                    List<DeliveryPackage> packages = packageDAO.findByDelivererId(delivererId);
-                    String json = gson.toJson(packages);
-                    resp.setStatus(HttpServletResponse.SC_OK);
-                    out.print(json);
-                } else if (clientIdParam != null) {
-                    // Get packages created by a client
+                if (clientIdParam != null) {
+                    if(!role.equals("ADMIN")){
+                        resp.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                        out.print("{\"error\": \"Admins only.\"}");
+                        return;
+                    }
                     int clientId = Integer.parseInt(clientIdParam);
                     List<DeliveryPackage> packages = packageDAO.findByClientId(clientId);
                     String json = gson.toJson(packages);
                     resp.setStatus(HttpServletResponse.SC_OK);
                     out.print(json);
                 } else {
-                    // Get all packages
-                    List<DeliveryPackage> packages = packageDAO.findAll();
-                    String json = gson.toJson(packages);
-                    resp.setStatus(HttpServletResponse.SC_OK);
-                    out.print(json);
+                    if(role.equals("CLIENT")){
+                        int clientId = userId;
+                        List<DeliveryPackage> packages = packageDAO.findByClientId(clientId);
+                        String json = gson.toJson(packages);
+                        resp.setStatus(HttpServletResponse.SC_OK);
+                        out.print(json);
+                        return;
+                    }
+                    else if(role.equals("ADMIN")){
+                        List<DeliveryPackage> packages = packageDAO.findAll();
+                        String json = gson.toJson(packages);
+                        resp.setStatus(HttpServletResponse.SC_OK);
+                        out.print(json);
+                        return;
+                    }
                 }
             } else {
-                // Get package by ID
+                
                 String[] splits = pathInfo.split("/");
                 if (splits.length > 1) {
                     int id = Integer.parseInt(splits[1]);
                     DeliveryPackage pkg = packageDAO.findById(id);
-
+                    if(!role.equals("ADMIN") && !packageDAO.ownsPackage(userId , id)){
+                        resp.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                        out.print("{\"error\": \"You can only access your own packages.\"}");
+                        return;
+                    }
                     if (pkg != null) {
                         String json = gson.toJson(pkg);
                         resp.setStatus(HttpServletResponse.SC_OK);
@@ -104,7 +120,6 @@ public class DeliveryPackageServlet extends HttpServlet {
         }
         int clientId = userId;
         try {
-            // Read JSON from request body
             BufferedReader reader = req.getReader();
             DeliveryPackage pkg = gson.fromJson(reader, DeliveryPackage.class);
 
@@ -114,7 +129,6 @@ public class DeliveryPackageServlet extends HttpServlet {
                 return;
             }
 
-            // Set default values
             if (pkg.getStatus() == null) {
                 pkg.setStatus(PackageStatus.CREATED);
             }
@@ -122,10 +136,9 @@ public class DeliveryPackageServlet extends HttpServlet {
                 pkg.setCreatedAt(new Timestamp(System.currentTimeMillis()));
             }
 
-            // Insert into database
             pkg.setIdClientSource(clientId);
             packageDAO.insert(pkg);
-            // Return created package
+
             String json = gson.toJson(pkg);
             resp.setStatus(HttpServletResponse.SC_CREATED);
             out.print(json);
@@ -171,7 +184,6 @@ public class DeliveryPackageServlet extends HttpServlet {
             String[] splits = pathInfo.split("/");
             int id = Integer.parseInt(splits[1]);
 
-            // 1. FETCH EXISTING DATA FIRST (Crucial Step!)
             DeliveryPackage existing = packageDAO.findById(id);
             if (existing == null) {
                 resp.setStatus(HttpServletResponse.SC_NOT_FOUND);
@@ -184,12 +196,9 @@ public class DeliveryPackageServlet extends HttpServlet {
                 return;
             }
 
-            // 2. Read new updates
             BufferedReader reader = req.getReader();
             DeliveryPackage updates = gson.fromJson(reader, DeliveryPackage.class);
 
-            // 3. UPDATE ONLY WHAT IS NOT NULL
-            // This prevents overwriting existing data with nulls
             if (updates.getStatus() != null) existing.setStatus(updates.getStatus());
             if (updates.getVehicleTypeNeeded() != null) existing.setVehicleTypeNeeded(updates.getVehicleTypeNeeded());
             if (updates.getAddressSource() != null) existing.setAddressSource(updates.getAddressSource());
@@ -198,7 +207,6 @@ public class DeliveryPackageServlet extends HttpServlet {
             if (updates.getWeight() > 0) existing.setWeight(updates.getWeight());
             if (updates.getPrice() > 0) existing.setPrice(updates.getPrice());
 
-            // 4. SAVE THE MERGED OBJECT
             packageDAO.update(existing);
 
             String json = gson.toJson(existing);
@@ -248,7 +256,6 @@ public class DeliveryPackageServlet extends HttpServlet {
             String[] splits = pathInfo.split("/");
             int id = Integer.parseInt(splits[1]);
 
-            // Check if package exists
             DeliveryPackage existing = packageDAO.findById(id);
             if (existing == null) {
                 resp.setStatus(HttpServletResponse.SC_NOT_FOUND);
@@ -261,7 +268,6 @@ public class DeliveryPackageServlet extends HttpServlet {
                 return;
             }
 
-            // Delete from database
             packageDAO.delete(id);
 
             resp.setStatus(HttpServletResponse.SC_OK);

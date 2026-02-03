@@ -196,4 +196,23 @@ public class UserDAO implements DAO<User>{
             return false;
         }
     }
+    public List<User> searchByName(String nameQuery) throws SQLException {
+        List<User> users = new ArrayList<>();
+        String sql = "SELECT * FROM users WHERE first_name LIKE ? OR last_name LIKE ? OR username LIKE ?";
+        try (Connection conn = Database.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            String queryParam = "%" + nameQuery + "%";
+            stmt.setString(1, queryParam);
+            stmt.setString(2, queryParam);
+            stmt.setString(3, queryParam);
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    users.add(mapResultSetToUser(rs));
+                }
+            }
+        }
+        return users;
+    }
 }

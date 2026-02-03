@@ -6,8 +6,8 @@ import com.app.model.Enums.*;
 public class DeliveryPackage {
     private int idPackage;
     private int idClientSource;
-    private int idClientDestination; // nullable if not assigned yet
-    private VehicleType vehicleTypeNeeded; // CAN BE NONE
+    private int idClientDestination;
+    private VehicleType vehicleTypeNeeded;
     private String addressSource;
     private String addressDestination;
     private double weight;

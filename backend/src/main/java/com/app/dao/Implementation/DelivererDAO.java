@@ -7,6 +7,7 @@ import java.util.List;
 import com.app.dao.Interface.DAO;
 import com.app.model.Affectation;
 import com.app.model.Deliverer;
+import com.app.model.Enums.Role;
 import com.app.model.Enums.VehicleType;
 import com.app.util.Database;
 
@@ -245,6 +246,7 @@ public class DelivererDAO implements DAO<Deliverer>{
             deliverer.setSerialNumber(rs.getString("serial_number"));
             deliverer.setRate(rs.getDouble("rate"));
             deliverer.setEmailVerified(rs.getBoolean("email_verified"));
+            deliverer.setRole(Role.DELIVERER);
             return deliverer;
         }
         catch(SQLException e){
@@ -324,7 +326,7 @@ public class DelivererDAO implements DAO<Deliverer>{
     }
     public List<Deliverer> getPendingDeliverers() throws SQLException {
         List<Deliverer> deliverers = new ArrayList<>();
-        String sql = "SELECT u.*, d.* FROM users u JOIN deliverer d ON u.id = d.id WHERE u.email_verified = FALSE";
+        String sql = "SELECT u.*, d.* FROM users u JOIN deliverer d ON u.id = d.id WHERE d.is_approved = FALSE";
         try (Connection conn = Database.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql);
              ResultSet rs = stmt.executeQuery()) {

@@ -6,9 +6,9 @@ import { Textarea } from './ui/textarea';
 import { Label } from './ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { StatusBadge } from './StatusBadge';
-import { Plus, MapPin, Package, LogOut, Send, Inbox, CheckCircle, X, Search } from 'lucide-react';
+import { Plus, MapPin, Package, LogOut, Send, Inbox, CheckCircle, X, Search, Truck, Star, Bell } from 'lucide-react';
 import type { Order, User } from '../types';
-import { fetchOrders, createOrder, updateOrderStatus } from '../lib/api';
+import { fetchOrdersById, fetchOrderById,fetchOrders, createOrder, updateOrderStatus, deleteOrder, requestDriver, submitRating, searchClients, fetchNotifications, markNotificationAsRead, type Notification } from '../lib/api';
 
 interface AuthUser {
   id: string;
@@ -24,6 +24,7 @@ interface ClientDashboardProps {
 
 export function ClientDashboard({ user, onLogout }: ClientDashboardProps) {
   const [allOrders, setAllOrders] = useState<Order[]>([]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -42,7 +43,16 @@ export function ClientDashboard({ user, onLogout }: ClientDashboardProps) {
     description: '',
     weight: '',
     pickupAddress: '',
+    vehicleTypeNeeded: 'CAR',
+    deliveryInstructions: '',
+    price: '',
+    addressDestination: '',
   });
+  
+  const [ratingOrderId, setRatingOrderId] = useState<string | null>(null);
+  const [ratingValue, setRatingValue] = useState(5);
+  const [ratingComment, setRatingComment] = useState('');
+  const [orderSearchId, setOrderSearchId] = useState('');
 
   // Fetch data on component mount
   useEffect(() => {
@@ -50,8 +60,12 @@ export function ClientDashboard({ user, onLogout }: ClientDashboardProps) {
       setLoading(true);
       setError(null);
       try {
-        const ordersData = await fetchOrders();
+        const [ordersData, notificationsData] = await Promise.all([
+          fetchOrders(),
+          fetchNotifications()
+        ]);
         setAllOrders(ordersData);
+        setNotifications(notificationsData);
         setAllUsers([]); // TODO: Implement fetchUsers API if needed
         
         // Filter orders for this user - using idClientSource for sent, idClientDestination for received
@@ -62,6 +76,7 @@ export function ClientDashboard({ user, onLogout }: ClientDashboardProps) {
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load data');
         setAllOrders([]);
+        setNotifications([]);
         setAllUsers([]);
         setSentOrders([]);
         setReceivedOrders([]);
@@ -73,42 +88,56 @@ export function ClientDashboard({ user, onLogout }: ClientDashboardProps) {
     loadData();
   }, [user.id]);
 
-  const handleSearchUsers = (query: string) => {
+  const handleSearchUsers = async (query: string) => {
     setSearchQuery(query);
     if (query.trim().length < 2) {
       setSearchResults([]);
       return;
     }
     
-    // TODO: Implement user search API
-    // For now, search in local users array
-    const results = allUsers.filter(u => 
-      u.role === 'client' && 
-      u.id !== user.id &&
-      (u.name.toLowerCase().includes(query.toLowerCase()) ||
-       u.email.toLowerCase().includes(query.toLowerCase()))
-    );
-    setSearchResults(results);
+    try {
+      const results = await searchClients(query);
+      setSearchResults(results);
+    } catch (err) {
+      console.error("Search failed", err);
+    }
   };
 
-  const handleSelectReceiver = (receiver: User) => {
+  const handleSelectReceiver = (receiver: any) => {
     setSelectedReceiver(receiver);
-    setSearchQuery(receiver.name);
+    setSearchQuery(receiver.name || `${receiver.firstName} ${receiver.lastName}`);
     setSearchResults([]);
   };
 
-  const handleCreateOrder = async () => {
-    if (!selectedReceiver) return;
+  const handleSearchOrder = async () => {
+    if (!orderSearchId.trim()) {
+      const userIdNum = parseInt(user.id);
+      setSentOrders(allOrders.filter(o => o.idClientSource === userIdNum));
+      return;
+    }
 
     try {
+      const order = await fetchOrderById(orderSearchId);
+      if (order && order.idClientSource === parseInt(user.id)) {
+        setSentOrders([order]);
+      } else {
+        setSentOrders([]);
+      }
+    } catch (err) {
+      setSentOrders([]);
+    }
+  };
+
+  const handleCreateOrder = async () => {
+    try {
       const orderData = {
-        idClientSource: parseInt(user.id),
-        idClientDestination: parseInt(selectedReceiver.id),
+        vehicleTypeNeeded: newOrder.vehicleTypeNeeded,
         addressSource: newOrder.pickupAddress,
-        addressDestination: selectedReceiver.address || '',
+        addressDestination: selectedReceiver?.address || newOrder.addressDestination,
         weight: parseFloat(newOrder.weight),
-        price: 0, // TODO: Calculate price based on weight/distance
+        price: parseFloat(newOrder.price) || 0,
         description: newOrder.description,
+        deliveryInstructions: newOrder.deliveryInstructions,
       };
 
       const createdOrder = await createOrder(orderData);
@@ -125,16 +154,43 @@ export function ClientDashboard({ user, onLogout }: ClientDashboardProps) {
       description: '',
       weight: '',
       pickupAddress: '',
+      vehicleTypeNeeded: 'CAR',
+      deliveryInstructions: '',
+      price: '',
+      addressDestination: '',
     });
   };
 
   const handleCancelOrder = async (orderId: string) => {
     try {
-      const updatedOrder = await updateOrderStatus(orderId, 'CANCELLED');
-      setSentOrders(sentOrders.map(o => o.idPackage.toString() === orderId ? updatedOrder : o));
-      setAllOrders(allOrders.map(o => o.idPackage.toString() === orderId ? updatedOrder : o));
+      await deleteOrder(orderId);
+      setSentOrders(sentOrders.filter(o => o.idPackage.toString() !== orderId));
+      setAllOrders(allOrders.filter(o => o.idPackage.toString() !== orderId));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to cancel order');
+    }
+  };
+
+  const handleRequestDriver = async (orderId: string) => {
+    try {
+      const response = await requestDriver(orderId);
+      alert(`${response.message}\nDriver: ${response.delivererName}`);
+      // Refresh orders to show updated status
+      const ordersData = await fetchOrders();
+      setAllOrders(ordersData);
+      setSentOrders(ordersData.filter(o => o.idClientSource === parseInt(user.id)));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to request driver');
+    }
+  };
+
+  const handleRateDeliverer = async (delivererId: number, rating: number, comment: string) => {
+    try {
+      await submitRating({ idDeliverer: delivererId, rating, comment });
+      setRatingOrderId(null);
+      // Could add a success toast here
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to submit rating');
     }
   };
 
@@ -156,6 +212,15 @@ export function ClientDashboard({ user, onLogout }: ClientDashboardProps) {
       setAllOrders(allOrders.map(o => o.idPackage.toString() === orderId ? updatedOrder : o));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to reject delivery');
+    }
+  };
+
+  const handleMarkAsRead = async (id: number) => {
+    try {
+      await markNotificationAsRead(id);
+      setNotifications(notifications.map(n => n.id === id ? { ...n, isRead: true } : n));
+    } catch (err) {
+      console.error("Failed to mark notification as read", err);
     }
   };
 
@@ -185,7 +250,7 @@ export function ClientDashboard({ user, onLogout }: ClientDashboardProps) {
           </div>
         )}
         <Tabs defaultValue="send" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="send">
               <Send className="size-4 mr-2" />
               Send Packages
@@ -193,6 +258,15 @@ export function ClientDashboard({ user, onLogout }: ClientDashboardProps) {
             <TabsTrigger value="receive">
               <Inbox className="size-4 mr-2" />
               Receive Packages
+            </TabsTrigger>
+            <TabsTrigger value="notifications" className="relative">
+              <Bell className="size-4 mr-2" />
+              Notifications
+              {notifications.filter(n => !n.isRead).length > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full size-4 flex items-center justify-center">
+                  {notifications.filter(n => !n.isRead).length}
+                </span>
+              )}
             </TabsTrigger>
           </TabsList>
 
@@ -230,13 +304,13 @@ export function ClientDashboard({ user, onLogout }: ClientDashboardProps) {
                     </div>
                     {searchResults.length > 0 && (
                       <div className="border border-neutral-200 rounded-lg mt-2 max-h-48 overflow-y-auto">
-                        {searchResults.map(receiver => (
+                        {searchResults.map((receiver: any) => (
                           <button
                             key={receiver.id}
                             onClick={() => handleSelectReceiver(receiver)}
                             className="w-full text-left px-4 py-3 hover:bg-neutral-50 border-b border-neutral-100 last:border-b-0"
                           >
-                            <p className="text-neutral-900">{receiver.name}</p>
+                            <p className="text-neutral-900">{receiver.name || `${receiver.firstName} ${receiver.lastName}`}</p>
                             <p className="text-sm text-neutral-500">{receiver.email}</p>
                             <p className="text-xs text-neutral-400">{receiver.address}</p>
                           </button>
@@ -248,7 +322,7 @@ export function ClientDashboard({ user, onLogout }: ClientDashboardProps) {
                         <div className="flex items-center justify-between">
                           <div>
                             <p className="text-sm text-green-900">Selected Receiver:</p>
-                            <p className="text-green-900">{selectedReceiver.name}</p>
+                            <p className="text-green-900">{selectedReceiver.name || `${(selectedReceiver as any).firstName} ${(selectedReceiver as any).lastName}`}</p>
                             <p className="text-sm text-green-700">{selectedReceiver.address}</p>
                           </div>
                           <Button
@@ -289,6 +363,27 @@ export function ClientDashboard({ user, onLogout }: ClientDashboardProps) {
                   </div>
 
                   <div className="space-y-2">
+                    <Label htmlFor="price">Price</Label>
+                    <Input
+                      id="price"
+                      type="number"
+                      placeholder="Enter price"
+                      value={newOrder.price}
+                      onChange={(e) => setNewOrder({ ...newOrder, price: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="deliveryInstructions">Delivery Instructions</Label>
+                    <Textarea
+                      id="deliveryInstructions"
+                      placeholder="Enter delivery instructions"
+                      value={newOrder.deliveryInstructions}
+                      onChange={(e) => setNewOrder({ ...newOrder, deliveryInstructions: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
                     <Label htmlFor="pickupAddress">Pickup Address</Label>
                     <Input
                       id="pickupAddress"
@@ -298,11 +393,36 @@ export function ClientDashboard({ user, onLogout }: ClientDashboardProps) {
                     />
                   </div>
 
+                  <div className="space-y-2">
+                    <Label htmlFor="addressDestination">Destination Address</Label>
+                    <Input
+                      id="addressDestination"
+                      placeholder="Enter destination address (if no receiver selected)"
+                      value={newOrder.addressDestination}
+                      onChange={(e) => setNewOrder({ ...newOrder, addressDestination: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="vehicleTypeNeeded">Vehicle Type Needed</Label>
+                    <select
+                      id="vehicleTypeNeeded"
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      value={newOrder.vehicleTypeNeeded}
+                      onChange={(e) => setNewOrder({ ...newOrder, vehicleTypeNeeded: e.target.value })}
+                    >
+                      <option value="BIKE">BIKE</option>
+                      <option value="CAR">CAR</option>
+                      <option value="TRUCK">TRUCK</option>
+                      <option value="VAN">VAN</option>
+                    </select>
+                  </div>
+
                   <div className="flex gap-2">
                     <Button 
                       onClick={handleCreateOrder} 
                       className="flex-1"
-                      disabled={!selectedReceiver || !newOrder.description || !newOrder.weight}
+                      disabled={!newOrder.description || !newOrder.weight}
                     >
                       Create Shipment
                     </Button>
@@ -320,8 +440,19 @@ export function ClientDashboard({ user, onLogout }: ClientDashboardProps) {
 
             {/* My Shipments */}
             <Card>
-              <CardHeader>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle>My Shipments</CardTitle>
+                <div className="flex items-center space-x-2">
+                  <Input
+                    placeholder="Order ID"
+                    className="h-8 w-[150px]"
+                    value={orderSearchId}
+                    onChange={(e) => setOrderSearchId(e.target.value)}
+                  />
+                  <Button size="sm" variant="ghost" onClick={handleSearchOrder}>
+                    <Search className="size-4" />
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
@@ -366,16 +497,75 @@ export function ClientDashboard({ user, onLogout }: ClientDashboardProps) {
                         {order.status === 'CREATED' && (
                           <div className="space-y-3">
                             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm">
-                              <p className="text-blue-900">Order created - Waiting for delivery assignment</p>
+                              <p className="text-blue-900">Order created</p>
                             </div>
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              onClick={() => handleCancelOrder(order.idPackage.toString())}
-                            >
-                              <X className="size-4 mr-2" />
-                              Cancel Order
-                            </Button>
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                onClick={() => handleRequestDriver(order.idPackage.toString())}
+                                className="flex-1"
+                              >
+                                <Truck className="size-4 mr-2" />
+                                Request Driver
+                              </Button>
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => handleCancelOrder(order.idPackage.toString())}
+                              >
+                                <X className="size-4 mr-2" />
+                                Cancel
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+
+                        {order.status === 'DELIVERED' && (
+                          <div className="mt-3 pt-3 border-t border-neutral-100">
+                            {ratingOrderId === order.idPackage.toString() ? (
+                              <div className="bg-neutral-50 p-3 rounded-lg space-y-3 border border-neutral-200">
+                                <p className="font-medium text-sm">Rate Delivery</p>
+                                <div className="flex items-center gap-1">
+                                  {[1, 2, 3, 4, 5].map((star) => (
+                                    <button
+                                      key={star}
+                                      onClick={() => setRatingValue(star)}
+                                      className={`p-1 hover:scale-110 transition-transform ${star <= ratingValue ? 'text-yellow-400' : 'text-gray-300'}`}
+                                      type="button"
+                                    >
+                                      <Star className="size-5 fill-current" />
+                                    </button>
+                                  ))}
+                                </div>
+                                <Textarea 
+                                  placeholder="Add a comment..." 
+                                  value={ratingComment}
+                                  onChange={(e) => setRatingComment(e.target.value)}
+                                  className="text-sm"
+                                />
+                                <div className="flex gap-2">
+                                  <Button size="sm" onClick={() => {
+                                    // Cast to any to access idDeliverer if it's not in the Order type definition yet
+                                    const delivererId = (order as any).idDeliverer;
+                                    if (delivererId) {
+                                      handleRateDeliverer(delivererId, ratingValue, ratingComment);
+                                    } else {
+                                      setError("Cannot rate: Deliverer information missing");
+                                    }
+                                  }}>Submit</Button>
+                                  <Button size="sm" variant="ghost" onClick={() => setRatingOrderId(null)}>Cancel</Button>
+                                </div>
+                              </div>
+                            ) : (
+                              <Button variant="outline" size="sm" onClick={() => {
+                                setRatingOrderId(order.idPackage.toString());
+                                setRatingValue(5);
+                                setRatingComment('');
+                              }}>
+                                <Star className="size-4 mr-2" />
+                                Rate Deliverer
+                              </Button>
+                            )}
                           </div>
                         )}
 
@@ -520,6 +710,46 @@ export function ClientDashboard({ user, onLogout }: ClientDashboardProps) {
                       ))
                   )}
                 </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* NOTIFICATIONS TAB */}
+          <TabsContent value="notifications" className="space-y-6">
+            <div>
+              <h2 className="text-neutral-900 mb-2">Notifications</h2>
+              <p className="text-neutral-500">Updates about your shipments</p>
+            </div>
+
+            <Card>
+              <CardContent className="p-0">
+                {notifications.length === 0 ? (
+                  <div className="text-center py-12 text-neutral-500">
+                    <Bell className="size-12 mx-auto mb-3 opacity-30" />
+                    <p>No notifications</p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-neutral-100">
+                    {notifications.map(notification => (
+                      <div 
+                        key={notification.id} 
+                        className={`p-4 flex items-start justify-between hover:bg-neutral-50 transition-colors ${!notification.isRead ? 'bg-blue-50/50' : ''}`}
+                      >
+                        <div className="space-y-1">
+                          <p className={`text-sm ${!notification.isRead ? 'font-semibold text-neutral-900' : 'text-neutral-700'}`}>
+                            {notification.message}
+                          </p>
+                          <p className="text-xs text-neutral-500">{notification.dateNotif}</p>
+                        </div>
+                        {!notification.isRead && (
+                          <Button size="sm" variant="ghost" onClick={() => handleMarkAsRead(notification.id)}>
+                            Mark as read
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>

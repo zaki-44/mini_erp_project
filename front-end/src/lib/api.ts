@@ -90,6 +90,10 @@ export async function fetchOrders(): Promise<Order[]> {
   return apiFetch<Order[]>('/api/packages');
 }
 
+export async function fetchOrdersById(id: number): Promise<Order[]> {
+  return apiFetch<Order[]>(`/api/packages?idClient=${id}`);
+}
+
 export async function fetchOrderById(orderId: string): Promise<Order> {
   return apiFetch<Order>(`/api/packages/${orderId}`);
 }
@@ -130,4 +134,75 @@ export async function approveDeliverer(delivererId: string) {
     return apiFetch(`/api/admin/approve?id=${delivererId}`, {
         method: 'POST'
     });
+}
+
+export interface Assignment {
+  idAffectation: number;
+  idDeliverer: number;
+  idPackage: number;
+  status: string;
+  assignedAt: string;
+}
+
+export async function fetchAssignments(): Promise<Assignment[]> {
+  return apiFetch<Assignment[]>('/api/assignments');
+}
+
+// ... existing imports and code ...
+
+export interface RequestDriverResponse {
+  status: string;
+  message: string;
+  delivererId: number;
+  delivererName: string;
+}
+
+export async function requestDriver(packageId: string): Promise<RequestDriverResponse> {
+  return apiFetch<RequestDriverResponse>(`/api/assignments/request/${packageId}`, {
+    method: 'POST'
+  });
+}
+
+export async function submitRating(data: { idDeliverer: number; rating: number; comment: string }) {
+  return apiFetch('/api/rates', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function completeDelivery(affectationId: string) {
+  // Note: The API expects the Assignment (Affectation) ID here.
+  // If the frontend is passing the Package ID, ensure they match or are mapped correctly.
+  return apiFetch(`/api/assignments/complete/${affectationId}`, {
+    method: 'POST'
+  });
+}
+
+// --- NOTIFICATIONS ---
+
+export interface Notification {
+  id: number;
+  idPackage: number;
+  message: string;
+  type: string;
+  isRead: boolean;
+  dateNotif: string;
+}
+
+export async function fetchNotifications(): Promise<Notification[]> {
+  return apiFetch<Notification[]>('/api/notifications');
+}
+
+export async function markNotificationAsRead(notificationId: number): Promise<void> {
+  // Uses query parameter: POST /api/notifications?notificationId=X
+  return apiFetch<void>(`/api/notifications?notificationId=${notificationId}`, {
+    method: 'POST'
+  });
+}
+
+// --- SEARCH ---
+
+export async function searchClients(query: string): Promise<any[]> {
+  // Returns: [{ id, firstName, lastName, email }]
+  return apiFetch<any[]>(`/api/search?q=${encodeURIComponent(query)}`);
 }
