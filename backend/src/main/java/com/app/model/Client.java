@@ -1,0 +1,98 @@
+package com.app.model;
+
+import com.app.model.Enums.Role;
+import java.util.List;
+
+public class Client extends User {
+
+    private String address;
+    private String city;
+    private int postalCode;
+
+    private List<DeliveryPackage> sentPackages;
+    private List<DeliveryPackage> receivedPackages;
+
+    public Client() {}
+
+    public Client(
+            int id,
+            String email,
+            String username,
+            String passwordHash,
+            String firstName,
+            String lastName,
+            String phoneNumber,
+            Role role,
+            String address,
+            String city,
+            int postalCode,
+            boolean emailVerified) {
+        super(id, email, username, passwordHash, firstName, lastName, phoneNumber, role , emailVerified);
+        this.address = address;
+        this.city = city;
+        this.postalCode = postalCode;
+    }
+    public Client(User user, String address, String city, int postalCode) {
+        super(user.getId(), user.getEmail(), user.getUsername(), user.getPasswordHash(),
+              user.getFirstName(), user.getLastName(), user.getPhoneNumber(), Role.valueOf(user.getRole()) , user.isEmailVerified());
+        this.address = address;
+        this.city = city;
+        this.postalCode = postalCode;
+    }
+
+
+    public String getAddress() {
+        return address;
+    }
+
+    public void setAddress(String address) {
+        this.address = address;
+    }
+
+    public String getCity() {
+        return city;
+    }
+
+    public void setCity(String city) {
+        this.city = city;
+    }
+
+    public int getPostalCode() {
+        return postalCode;
+    }
+
+    public void setPostalCode(int postalCode) {
+        this.postalCode = postalCode;
+    }
+
+    
+ 
+    public List<DeliveryPackage> getSentPackages() {
+        return sentPackages;
+    }
+
+    public void setSentPackages(List<DeliveryPackage> sentPackages) {
+        this.sentPackages = sentPackages;
+    }
+
+    public List<DeliveryPackage> getReceivedPackages() {
+        return receivedPackages;
+    }
+
+    public void setReceivedPackages(List<DeliveryPackage> receivedPackages) {
+        this.receivedPackages = receivedPackages;
+    }
+
+    @Override
+    public void print() {
+        super.print();
+        System.out.println(
+            "Client [address=" + address +
+            ", city=" + city +
+            ", postalCode=" + postalCode +
+            ", sentPackages=" + sentPackages +
+            ", receivedPackages=" + receivedPackages +
+            "]"
+        );
+    }
+}
